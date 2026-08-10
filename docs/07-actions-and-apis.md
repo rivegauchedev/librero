@@ -20,7 +20,9 @@ as a toast. Every one of them:
 4. calls `revalidatePath()`;
 5. returns a message — never throws at the client.
 
-Note the `optionalText` / `optionalInt` / `optionalList` helpers in `src/actions/books.ts`:
+Note the `optionalText` / `optionalInt` / `optionalList` / `optionalDate` helpers in
+`src/lib/form-fields.ts` — they live there rather than beside the actions because a
+`"use server"` module may only export async functions:
 `FormData.get()` returns `null` for a field the form did not render, and
 `Object.fromEntries` omits it entirely, so every optional field must accept `string`,
 `null` **and** `undefined`. A plain `z.string().optional()` rejects `null` and produces
@@ -45,7 +47,18 @@ the unhelpful "expected string, received null".
 | `toggleWishlist` | user | Refuses to wishlist a book that still has copies — you cannot own and want the same book |
 | `removeWork` | user | Cascades to editions and copies; unlinks their upload directories |
 | `addEdition` / `saveEdition` / `removeEdition` | user | |
-| `addCopy` / `saveCopy` / `removeCopy` | user | `medium` is fixed once a copy exists: changing it would orphan an uploaded file |
+| `addCopy` / `saveCopy` / `removeCopy` | user | `medium` is fixed once a copy exists: changing it would orphan an uploaded file. `removeCopy` refuses while the copy is lent out |
+
+## `src/actions/loans.ts`
+
+| Action | Guard | Notes |
+| --- | --- | --- |
+| `lendCopy` | user | Borrower, date, notes. A second open loan on the same copy hits `loans_open_copy_unique`; the constraint error is translated rather than pre-checked, because only the index closes the race |
+| `markLoanReturned` | user | Stamps `returned_at` and keeps the row. Reports "already closed" from the update's own row count, without a second read |
+| `removeLoan` | user | For a loan entered by mistake — returned loans are otherwise kept |
+
+A loan is visible on the book's page and on `/loans` and can be changed from either, so
+every loan form carries a `workId` and both paths are revalidated.
 
 ## `src/actions/users.ts` — administrators only
 
@@ -91,6 +104,7 @@ returning flat typed rows. No fetch, no route, no serialisation.
 | Module | Provides |
 | --- | --- |
 | `queries/works.ts` | `listWorks`, `listWishlist`, `listRecentlyAdded`, `listCurrentlyReading`, `getWorkDetail` |
+| `queries/loans.ts` | `listOpenLoans`, `listRecentlyReturned`, `listLoansForWork`, `countOpenLoansForCopy`. Every projection derives `status` from `returned_at` |
 | `queries/search.ts` | `searchLibrary` — exact ISBN first, then FTS5 |
 | `queries/stats.ts` | Dashboard counts, summing copy quantities rather than rows |
 | `queries/export.ts` | The flattened CSV projection |

@@ -2,6 +2,7 @@ import type {
   CopyMedium,
   EditionFormat,
   FileFormat,
+  LoanStatus,
   ReadingStatus,
 } from "@/db/schema"
 
@@ -34,6 +35,11 @@ const FILE_FORMAT_LABELS: Record<FileFormat, string> = {
   other: "File",
 }
 
+const LOAN_STATUS_LABELS: Record<LoanStatus, string> = {
+  pending: "Out",
+  returned: "Returned",
+}
+
 export function formatLabel(value: string): string {
   return FORMAT_LABELS[value as EditionFormat] ?? value
 }
@@ -48,6 +54,10 @@ export function mediumLabel(value: CopyMedium): string {
 
 export function fileFormatLabel(value: FileFormat): string {
   return FILE_FORMAT_LABELS[value] ?? value
+}
+
+export function loanStatusLabel(value: LoanStatus): string {
+  return LOAN_STATUS_LABELS[value] ?? value
 }
 
 export const FORMAT_OPTIONS = (

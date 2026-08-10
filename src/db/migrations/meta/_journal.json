@@ -15,6 +15,13 @@
       "when": 1786334404269,
       "tag": "0001_works_fts",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1786382542440,
+      "tag": "0002_goofy_wolfsbane",
+      "breakpoints": true
     }
   ]
 }
