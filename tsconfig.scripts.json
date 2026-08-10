@@ -1,0 +1,13 @@
+{
+  // Maintenance scripts import the same modules the app does, but run under
+  // plain Node where the real "server-only" package throws on import. Point it
+  // at a no-op; the guard exists to protect client bundles, and a CLI script is
+  // not one.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"],
+      "server-only": ["./scripts/server-only-shim.ts"]
+    }
+  }
+}
