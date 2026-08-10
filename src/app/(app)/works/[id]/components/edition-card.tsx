@@ -2,13 +2,14 @@
 
 import * as React from "react"
 import { useActionState } from "react"
-import { Download, MapPin, Plus, Trash2 } from "lucide-react"
+import { Download, ImagePlus, MapPin, Pencil, Plus, Trash2 } from "lucide-react"
 
 import { removeCopy, removeEdition, type BookActionState } from "@/actions/books"
 import type { CopyDetail, EditionDetail } from "@/db/queries/works"
 import { SubmitButton, useActionFeedback } from "@/components/action-form"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { BookCover } from "@/components/book-cover"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   fileFormatLabel,
@@ -17,6 +18,7 @@ import {
   mediumLabel,
 } from "@/lib/labels"
 import { CopyDialog } from "./copy-dialog"
+import { EditionDialog } from "./edition-dialog"
 import { UploadDialog } from "./upload-dialog"
 
 function CopyRow({
@@ -152,7 +154,26 @@ export function EditionCard({
         </div>
       </CardHeader>
 
-      <CardContent className="flex flex-col gap-3">
+      <CardContent className="flex gap-4">
+        {/* Each edition shows its own cover: which printing has artwork, and
+            which is still missing one, is otherwise invisible. */}
+        <div className="hidden w-20 shrink-0 sm:block">
+          <BookCover coverPath={edition.coverPath} title={`edition ${edition.id}`} />
+          {!edition.coverPath ? (
+            <EditionDialog
+              workId={workId}
+              edition={edition}
+              trigger={
+                <Button variant="ghost" size="sm" className="mt-1 h-auto w-full px-1 py-1 text-xs">
+                  <ImagePlus className="size-3.5" />
+                  Add cover
+                </Button>
+              }
+            />
+          ) : null}
+        </div>
+
+        <div className="flex min-w-0 flex-1 flex-col gap-3">
         {edition.copies.length > 0 ? (
           <ul className="flex flex-col">
             {edition.copies.map((copy) => (
@@ -181,6 +202,17 @@ export function EditionCard({
               </Button>
             }
           />
+          <EditionDialog
+            workId={workId}
+            edition={edition}
+            trigger={
+              <Button variant="outline" size="sm">
+                <Pencil className="size-4" />
+                Edit edition
+              </Button>
+            }
+          />
+
           <form action={action} className="ml-auto">
             <input type="hidden" name="editionId" value={edition.id} />
             <input type="hidden" name="workId" value={workId} />
@@ -193,6 +225,7 @@ export function EditionCard({
               Remove edition
             </SubmitButton>
           </form>
+          </div>
         </div>
       </CardContent>
     </Card>
