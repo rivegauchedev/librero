@@ -1,56 +1,41 @@
 import "server-only"
 
 import type { EditionFormat } from "@/db/schema"
-import { fetchJson } from "@/lib/providers/http"
+import {
+  ENRICHMENT_TIMEOUT_MS,
+  fetchJson,
+  fetchJsonOptional,
+} from "@/lib/providers/http"
+import type {
+  OlAuthor,
+  OlEdition,
+  OlSearchDoc,
+  OlSearchResponse,
+  OlWork,
+} from "@/lib/providers/openlibrary-schema"
+import { rankSearchResults } from "@/lib/providers/ranking"
 import type { MetadataProvider, NormalizedBook, SearchResult } from "@/lib/providers/types"
 
 const BASE = "https://openlibrary.org"
 const COVERS = "https://covers.openlibrary.org"
 
-/* ------------------------------------------------------------ API shapes */
-
-type OlEdition = {
-  key: string
-  title?: string
-  subtitle?: string
-  authors?: { key: string }[]
-  works?: { key: string }[]
-  publishers?: string[]
-  publish_date?: string
-  number_of_pages?: number
-  languages?: { key: string }[]
-  isbn_10?: string[]
-  isbn_13?: string[]
-  covers?: number[]
-  physical_format?: string
-  series?: string[]
-}
-
-type OlWork = {
-  key: string
-  title?: string
-  subtitle?: string
-  description?: string | { value?: string }
-  first_publish_date?: string
-  subjects?: string[]
-  authors?: { author?: { key: string } }[]
-  covers?: number[]
-}
-
-type OlAuthor = { key: string; name?: string }
-
-type OlSearchResponse = {
-  docs?: {
-    key?: string
-    title?: string
-    subtitle?: string
-    author_name?: string[]
-    first_publish_year?: number
-    isbn?: string[]
-    cover_i?: number
-    edition_count?: number
-  }[]
-}
+/** Fetched from search.json, which returns everything below in one request. */
+const SEARCH_FIELDS = [
+  "key",
+  "title",
+  "subtitle",
+  "author_name",
+  "author_key",
+  "first_publish_year",
+  "isbn",
+  "cover_i",
+  "edition_count",
+  "readinglog_count",
+  "ratings_count",
+  "number_of_pages_median",
+  "language",
+  "publisher",
+].join(",")
 
 /* ------------------------------------------------------------ conversion */
 
@@ -102,85 +87,160 @@ function stripKey(key: string | undefined, prefix: string): string | null {
   return key?.startsWith(prefix) ? key.slice(prefix.length) : null
 }
 
+export function docToSearchResult(doc: OlSearchDoc): SearchResult {
+  // `isbn` lists every ISBN across every edition; the first 13-digit one is as
+  // good a representative as any.
+  const isbns = doc.isbn ?? []
+  return {
+    title: doc.title ?? "Untitled",
+    subtitle: doc.subtitle ?? null,
+    authors: doc.author_name ?? [],
+    firstPublishYear: doc.first_publish_year ?? null,
+    isbn13: isbns.find((value) => value.length === 13) ?? null,
+    isbn10: isbns.find((value) => value.length === 10) ?? null,
+    coverUrl: coverUrlFromId(doc.cover_i),
+    openLibraryWorkId: stripKey(doc.key, "/works/"),
+    editionCount: doc.edition_count ?? null,
+    source: "openlibrary",
+  }
+}
+
 /* -------------------------------------------------------------- provider */
 
-async function fetchAuthorNames(keys: string[]): Promise<string[]> {
-  const authors = await Promise.all(
-    keys.map((key) => fetchJson<OlAuthor>(`${BASE}${key}.json`).catch(() => null))
+async function searchDocs(
+  params: URLSearchParams,
+  options: { retry?: boolean } = {}
+): Promise<OlSearchDoc[]> {
+  params.set("fields", SEARCH_FIELDS)
+  const response = await fetchJson<OlSearchResponse>(
+    `${BASE}/search.json?${params}`,
+    options
   )
-  return authors.map((author) => author?.name).filter((name): name is string => !!name)
+  return response?.docs ?? []
 }
 
 export const openLibrary: MetadataProvider = {
   name: "openlibrary",
 
+  /**
+   * Look up one edition.
+   *
+   * The obvious implementation — /isbn/ then /works/ then /authors/ — is three
+   * sequential requests against an API that regularly takes five to ten seconds
+   * each, and any one of them failing loses the whole book. That is exactly how
+   * a perfectly well-catalogued title came back as "no book found".
+   *
+   * Instead: `search.json?isbn=` answers title, authors, year, page count and
+   * cover in a single request, and runs *in parallel* with the /isbn/ call that
+   * adds edition detail. Everything after that is enrichment — fetched with
+   * fetchJsonOptional so a slow request degrades the record rather than losing
+   * it.
+   */
   async lookupByIsbn(isbn13, isbn10) {
-    const edition = await fetchJson<OlEdition>(`${BASE}/isbn/${isbn13}.json`)
-    if (!edition) return null
+    // Neither is retried: they are redundant, so a failure on one is already
+    // covered by the other, and retrying would double the worst-case wait.
+    const [docs, edition] = await Promise.all([
+      searchDocs(new URLSearchParams({ isbn: isbn13, limit: "1" }), {
+        retry: false,
+      }).catch(() => []),
+      fetchJsonOptional<OlEdition>(`${BASE}/isbn/${isbn13}.json`, { retry: false }),
+    ])
 
-    const workKey = edition.works?.[0]?.key
-    const work = workKey ? await fetchJson<OlWork>(`${BASE}${workKey}.json`) : null
+    const doc = docs[0]
+    if (!doc && !edition) return null
 
-    // Author records live on the edition when it has them, on the work otherwise.
-    const authorKeys =
-      edition.authors?.map((a) => a.key) ??
-      work?.authors?.map((a) => a.author?.key).filter((key): key is string => !!key) ??
-      []
-    const authors = await fetchAuthorNames(authorKeys)
+    const workKey = edition?.works?.[0]?.key ?? (doc?.key ? doc.key : undefined)
+    // Enrichment only — description and subjects. Held to a short deadline so a
+    // slow work record costs a description, not ten seconds of waiting.
+    const work = workKey
+      ? await fetchJsonOptional<OlWork>(`${BASE}${workKey}.json`, {
+          timeoutMs: ENRICHMENT_TIMEOUT_MS,
+          retry: false,
+        })
+      : null
 
-    const publishYear = yearFrom(edition.publish_date)
+    // Authors, in order of trustworthiness.
+    //
+    // The edition's own author records win when it has them: search documents
+    // list every author name attached to the *work*, which includes
+    // transliterations — Dune comes back as ["Frank Herbert", "Френк Герберт"].
+    //
+    // When the edition names no authors (Circe's does not) the search document
+    // is all we have, and it is enough. Either way the author requests are
+    // optional: they are the slowest call in the chain, and losing them must
+    // cost us the author list, not the book.
+    const fetchAuthorNames = async (keys: string[]) => {
+      const fetched = await Promise.all(
+        keys
+          .slice(0, 4)
+          .map((key) =>
+            fetchJsonOptional<OlAuthor>(`${BASE}${key}.json`, {
+              timeoutMs: ENRICHMENT_TIMEOUT_MS,
+              retry: false,
+            })
+          )
+      )
+      return fetched.map((a) => a?.name).filter((name): name is string => !!name)
+    }
+
+    const editionAuthorKeys = edition?.authors?.map((a) => a.key) ?? []
+    const workAuthorKeys =
+      work?.authors?.map((a) => a.author?.key).filter((key): key is string => !!key) ?? []
+
+    let authors: string[] = []
+    if (editionAuthorKeys.length > 0) {
+      authors = await fetchAuthorNames(editionAuthorKeys)
+    }
+    if (authors.length === 0) authors = doc?.author_name ?? []
+    if (authors.length === 0 && workAuthorKeys.length > 0) {
+      authors = await fetchAuthorNames(workAuthorKeys)
+    }
+
+    const publishYear = yearFrom(edition?.publish_date) ?? doc?.first_publish_year ?? null
 
     return {
-      title: work?.title ?? edition.title ?? "Untitled",
-      subtitle: edition.subtitle ?? work?.subtitle ?? null,
+      title: work?.title ?? edition?.title ?? doc?.title ?? "Untitled",
+      subtitle: edition?.subtitle ?? work?.subtitle ?? doc?.subtitle ?? null,
       authors,
       description: plainDescription(work?.description),
-      firstPublishYear: yearFrom(work?.first_publish_date) ?? publishYear,
+      firstPublishYear:
+        yearFrom(work?.first_publish_date) ?? doc?.first_publish_year ?? publishYear,
       subjects: (work?.subjects ?? []).slice(0, 12),
-      series: parseSeries(edition.series),
+      series: parseSeries(edition?.series),
 
-      isbn13: edition.isbn_13?.[0] ?? isbn13,
-      isbn10: edition.isbn_10?.[0] ?? isbn10,
-      publisher: edition.publishers?.[0] ?? null,
+      isbn13: edition?.isbn_13?.[0] ?? isbn13,
+      isbn10: edition?.isbn_10?.[0] ?? isbn10,
+      publisher: edition?.publishers?.[0] ?? doc?.publisher?.[0] ?? null,
       publishYear,
-      pageCount: edition.number_of_pages ?? null,
-      language: languageFrom(edition.languages),
-      format: toFormat(edition.physical_format),
+      pageCount: edition?.number_of_pages ?? doc?.number_of_pages_median ?? null,
+      language: languageFrom(edition?.languages),
+      format: toFormat(edition?.physical_format),
 
       coverUrl:
-        coverUrlFromId(edition.covers?.[0]) ??
+        coverUrlFromId(edition?.covers?.[0]) ??
+        coverUrlFromId(doc?.cover_i) ??
         coverUrlFromId(work?.covers?.[0]) ??
         `${COVERS}/b/isbn/${isbn13}-L.jpg`,
       openLibraryWorkId: stripKey(workKey, "/works/"),
-      openLibraryEditionId: stripKey(edition.key, "/books/"),
+      openLibraryEditionId: stripKey(edition?.key, "/books/"),
       source: "openlibrary",
     }
   },
 
+  /**
+   * Free-text search.
+   *
+   * Open Library's own relevance ordering is poor for the queries people
+   * actually type: "circe" returns a study guide above the novel, and "dune"
+   * returns four sequels before the original. Rather than accept that, we ask
+   * for a wide candidate set together with the popularity fields, and rank it
+   * ourselves. See ranking.ts.
+   */
   async search(query, limit) {
-    const params = new URLSearchParams({
-      q: query,
-      limit: String(limit),
-      fields: "key,title,subtitle,author_name,first_publish_year,isbn,cover_i,edition_count",
-    })
-    const response = await fetchJson<OlSearchResponse>(`${BASE}/search.json?${params}`)
+    const docs = await searchDocs(
+      new URLSearchParams({ q: query, limit: String(Math.max(limit * 3, 40)) })
+    )
 
-    return (response?.docs ?? []).map((doc): SearchResult => {
-      // `isbn` is every ISBN across every edition; the 13-digit ones are the
-      // useful half, and the first is as good a representative as any.
-      const isbns = doc.isbn ?? []
-      return {
-        title: doc.title ?? "Untitled",
-        subtitle: doc.subtitle ?? null,
-        authors: doc.author_name ?? [],
-        firstPublishYear: doc.first_publish_year ?? null,
-        isbn13: isbns.find((value) => value.length === 13) ?? null,
-        isbn10: isbns.find((value) => value.length === 10) ?? null,
-        coverUrl: coverUrlFromId(doc.cover_i),
-        openLibraryWorkId: stripKey(doc.key, "/works/"),
-        editionCount: doc.edition_count ?? null,
-        source: "openlibrary",
-      }
-    })
+    return rankSearchResults(query, docs).slice(0, limit).map(docToSearchResult)
   },
 }
