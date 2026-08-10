@@ -19,6 +19,7 @@ import {
 } from "@/lib/labels"
 import { CopyDialog } from "./copy-dialog"
 import { EditionDialog } from "./edition-dialog"
+import { LoanBadge, LoanControls, LoanHistory } from "./loan-controls"
 import { UploadDialog } from "./upload-dialog"
 
 function CopyRow({
@@ -81,7 +82,10 @@ function CopyRow({
         <span className="text-muted-foreground italic">{copy.notes}</span>
       ) : null}
 
+      <LoanBadge copy={copy} />
+
       <div className="ml-auto flex items-center gap-1">
+        <LoanControls workId={workId} copy={copy} />
         <CopyDialog workId={workId} editionId={editionId} copy={copy} />
         {copy.medium === "digital" ? (
           <UploadDialog
@@ -104,6 +108,8 @@ function CopyRow({
           </Button>
         </form>
       </div>
+
+      <LoanHistory copy={copy} />
     </li>
   )
 }

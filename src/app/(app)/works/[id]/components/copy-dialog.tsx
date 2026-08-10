@@ -27,12 +27,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { toDateInput } from "@/lib/dates"
 import { FILE_FORMAT_OPTIONS, MEDIUM_OPTIONS } from "@/lib/labels"
-
-function toDateInput(unixSeconds: number | null): string {
-  if (!unixSeconds) return ""
-  return new Date(unixSeconds * 1000).toISOString().slice(0, 10)
-}
 
 /**
  * One dialog for both adding and editing a copy — the fields are identical, and

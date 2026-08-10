@@ -6,6 +6,7 @@ import {
   Library,
   ScanBarcode,
   Heart,
+  HandHelping,
   Upload,
   Users,
   Settings,
@@ -33,6 +34,7 @@ const libraryGroup = {
     { title: "Check a book", url: "/search", icon: ScanBarcode },
     { title: "My books", url: "/library", icon: Library },
     { title: "Wishlist", url: "/wishlist", icon: Heart },
+    { title: "On loan", url: "/loans", icon: HandHelping },
     { title: "Import", url: "/import", icon: Upload },
   ],
 }

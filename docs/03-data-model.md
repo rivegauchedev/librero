@@ -23,6 +23,7 @@ different answers.
 erDiagram
     works ||--o{ editions : "has printings"
     editions ||--o{ copies : "you own"
+    copies ||--o{ loans : "lent out"
     works ||--o{ work_authors : ""
     authors ||--o{ work_authors : ""
     works ||--o{ work_series : ""
@@ -62,6 +63,13 @@ erDiagram
         string file_path "digital only, under uploads/"
         string external_service "kindle|kobo|audible"
     }
+    loans {
+        int id PK
+        int copy_id FK
+        string borrower_name
+        int borrowed_at
+        int returned_at "null while still out"
+    }
     users {
         int id PK
         string username UK
@@ -88,6 +96,17 @@ paperback is by the bed.
 flagged `is_wishlist` with zero copies. Adding a copy clears the flag automatically
 (`clearWishlistFlagForEdition` in `src/db/mutations/catalog.ts`) — you cannot own a book
 and want it at the same time.
+
+**Loans hang off the copy, and their status is derived too.** You lend the physical thing
+you have, not the idea of the book — so `loans.copy_id`, which is also what makes lending
+possible only for something you own. A loan is open exactly while `returned_at` is null;
+there is no `status` column, because the partial unique index `loans_open_copy_unique`
+(`ON loans (copy_id) WHERE returned_at is null`) already depends on that timestamp, and a
+second flag could only ever disagree with it. Queries project `pending` / `returned` back
+out. Returning keeps the row, so a copy accumulates a history and can be lent again.
+
+One consequence to know about: a copy row with `quantity = 3` still tracks one loan at a
+time. Splitting it into separate copy rows is the way to lend more than one.
 
 **Prices are integer cents.** Floats and money do not mix.
 
@@ -124,7 +143,10 @@ If the index is ever suspected to be stale: `npm run reindex`.
 
 ## Deletion
 
-`ON DELETE CASCADE` runs from works down through editions to copies. SQL cannot unlink
+`ON DELETE CASCADE` runs from works down through editions to copies to loans — loan
+history for a copy you no longer own is noise. Because that silently erases it, `removeCopy`
+refuses while a loan is still open (`countOpenLoansForCopy` in `src/db/queries/loans.ts`).
+SQL cannot unlink
 files, so the delete actions in `src/actions/books.ts` collect the affected copy ids
 *before* deleting and remove their upload directories afterwards.
 

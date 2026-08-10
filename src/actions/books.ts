@@ -17,6 +17,7 @@ import {
   updateEdition,
   updateWork,
 } from "@/db/mutations/catalog"
+import { countOpenLoansForCopy } from "@/db/queries/loans"
 import { EDITION_FORMATS, FILE_FORMATS, READING_STATUSES } from "@/db/schema"
 import { assertUser, AuthorizationError } from "@/lib/auth"
 import {
@@ -25,6 +26,7 @@ import {
   CoverError,
   deleteCoverIfUnused,
 } from "@/lib/covers"
+import { optionalInt, optionalList, optionalText } from "@/lib/form-fields"
 import { lookupByIsbn } from "@/lib/providers"
 import { deleteCopyFiles } from "@/lib/uploads"
 
@@ -77,41 +79,6 @@ function refresh(workId?: number) {
   revalidatePath("/wishlist")
   if (workId) revalidatePath(`/works/${workId}`)
 }
-
-/*
- * FormData.get() returns null for a field the form did not render, and
- * Object.fromEntries omits it entirely — so every optional field has to accept
- * null and undefined as well as the empty string, and normalize all three to
- * null.
- */
-const optionalInt = z
-  .string()
-  .nullish()
-  .transform((value) => {
-    const trimmed = value?.trim()
-    if (!trimmed) return null
-    const parsed = Number.parseInt(trimmed, 10)
-    return Number.isFinite(parsed) ? parsed : null
-  })
-
-const optionalText = z
-  .string()
-  .nullish()
-  .transform((value) => {
-    const trimmed = value?.trim()
-    return trimmed ? trimmed : null
-  })
-
-/** A comma-separated field that may be missing entirely. */
-const optionalList = z
-  .string()
-  .nullish()
-  .transform((value) =>
-    (value ?? "")
-      .split(",")
-      .map((part) => part.trim())
-      .filter(Boolean)
-  )
 
 /* --------------------------------------------- add a book from a provider */
 
@@ -618,6 +585,12 @@ export async function removeCopy(
     const copyId = Number(formData.get("copyId"))
     const workId = Number(formData.get("workId"))
     if (!Number.isInteger(copyId)) return { error: "Invalid copy." }
+
+    // Deleting the copy cascades its loan history away, so refuse while the
+    // book is still in someone else's hands.
+    if (countOpenLoansForCopy(copyId) > 0) {
+      return { error: "That copy is lent out. Mark it returned before removing it." }
+    }
 
     deleteCopy(copyId)
     await deleteCopyFiles(copyId)
