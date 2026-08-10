@@ -97,19 +97,20 @@ no other state.
 
 ## License
 
-[PolyForm Noncommercial 1.0.0](LICENSE) — copyright 2026 Gerson Umanzor.
+[GNU Affero General Public License v3.0](LICENSE) — copyright 2026 Gerson Umanzor.
 
-Run it, change it, share it, host it for yourself, your household or a non-profit: all
-fine. Selling it, or using it commercially — as a paid product, a hosted service, or
-inside a for-profit business — is not permitted without a separate licence. Ask me.
+Run it, change it, share it, host it, sell it. The one condition is reciprocity: if you
+distribute Librero or run a modified version as a network service, the people using it
+must be able to get the complete corresponding source, under this same licence.
 
-Third-party components keep their own licences; see [Credits](#credits).
+Contributions are welcome on those terms. Third-party components keep their own licences;
+see [NOTICE](NOTICE) and [Credits](#credits).
 
 ## Credits
 
-The UI is forked from [rivegauchedev/design-system](https://github.com/rivegauchedev/design-system),
-itself a fork of the MIT-licensed
-[ShadcnStore dashboard template](https://github.com/silicondeck/shadcn-dashboard-landing-template).
+The UI is built on the MIT-licensed
+[ShadcnStore dashboard template](https://github.com/shadcnstore/shadcn-dashboard-landing-template)
+and [shadcn/ui](https://github.com/shadcn-ui/ui).
 The Work → Edition → Copy model is borrowed from
 [Library of Alexandria](https://github.com/Statisticonomicon/library-of-alexandria).
 Book metadata comes from [Open Library](https://openlibrary.org) and

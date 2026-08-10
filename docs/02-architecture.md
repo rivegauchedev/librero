@@ -15,7 +15,7 @@
 
 ## What came from the design system
 
-The UI is a fork of `rivegauchedev/design-system` (`nextjs-version/`), not a dependency —
+The UI is vendored from the ShadcnStore dashboard template (`nextjs-version/`), not a dependency —
 shadcn components are meant to be owned and edited, and vendoring them means no upstream
 break can take the app down.
 
