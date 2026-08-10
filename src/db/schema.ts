@@ -38,6 +38,8 @@ export const CONTRIBUTOR_ROLES = [
   "editor",
 ] as const
 export const METADATA_SOURCES = ["openlibrary", "googlebooks", "manual"] as const
+/** Derived from loans.returned_at, never stored — see the loans table. */
+export const LOAN_STATUSES = ["pending", "returned"] as const
 export const ROLES = ["admin", "user"] as const
 
 const timestamps = {
@@ -267,6 +269,44 @@ export const copies = sqliteTable(
   (t) => [index("copies_edition_idx").on(t.editionId)]
 )
 
+/* ---------------------------------------------------------------- loans */
+
+/*
+ * Lending a copy out. `status` is deliberately not a column: a loan is open
+ * exactly while `returned_at` is null, and the partial unique index below
+ * already depends on that, so a second flag could only ever disagree with it.
+ */
+export const loans = sqliteTable(
+  "loans",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    copyId: integer("copy_id")
+      .notNull()
+      .references(() => copies.id, { onDelete: "cascade" }),
+    borrowerName: text("borrower_name").notNull(),
+    borrowedAt: integer("borrowed_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    /** Null while the book is still out — this is what "pending" means. */
+    returnedAt: integer("returned_at", { mode: "timestamp" }),
+    notes: text("notes"),
+
+    ...timestamps,
+  },
+  (t) => [
+    index("loans_copy_idx").on(t.copyId),
+    /*
+     * One open loan per copy — but only open ones, so the same copy can be
+     * lent again once it comes back. The predicate is raw SQL on purpose:
+     * a column reference renders table-qualified, which SQLite rejects
+     * inside a partial index.
+     */
+    uniqueIndex("loans_open_copy_unique")
+      .on(t.copyId)
+      .where(sql`returned_at is null`),
+  ]
+)
+
 /* --------------------------------------------------------- metadata cache */
 
 export const metadataCache = sqliteTable(
@@ -298,8 +338,13 @@ export const editionsRelations = relations(editions, ({ one, many }) => ({
   copies: many(copies),
 }))
 
-export const copiesRelations = relations(copies, ({ one }) => ({
+export const copiesRelations = relations(copies, ({ one, many }) => ({
   edition: one(editions, { fields: [copies.editionId], references: [editions.id] }),
+  loans: many(loans),
+}))
+
+export const loansRelations = relations(loans, ({ one }) => ({
+  copy: one(copies, { fields: [loans.copyId], references: [copies.id] }),
 }))
 
 export const workAuthorsRelations = relations(workAuthors, ({ one }) => ({
@@ -340,9 +385,12 @@ export type Edition = typeof editions.$inferSelect
 export type NewEdition = typeof editions.$inferInsert
 export type Copy = typeof copies.$inferSelect
 export type NewCopy = typeof copies.$inferInsert
+export type Loan = typeof loans.$inferSelect
+export type NewLoan = typeof loans.$inferInsert
 
 export type ReadingStatus = (typeof READING_STATUSES)[number]
 export type EditionFormat = (typeof EDITION_FORMATS)[number]
 export type CopyMedium = (typeof COPY_MEDIA)[number]
 export type FileFormat = (typeof FILE_FORMATS)[number]
 export type MetadataSource = (typeof METADATA_SOURCES)[number]
+export type LoanStatus = (typeof LOAN_STATUSES)[number]

@@ -1,6 +1,7 @@
 import "server-only"
 
 import { sqlite } from "@/db"
+import { listLoansForWork, type CopyLoan } from "@/db/queries/loans"
 import type {
   CopyMedium,
   EditionFormat,
@@ -134,6 +135,8 @@ export type CopyDetail = {
   fileSizeBytes: number | null
   fileFormat: FileFormat | null
   externalService: string | null
+  /** Newest first. At most one of these is "pending" — see queries/loans.ts. */
+  loans: CopyLoan[]
 }
 
 export type EditionDetail = {
@@ -227,6 +230,15 @@ export function getWorkDetail(workId: number): WorkDetail | null {
        FROM copies WHERE edition_id = ? ORDER BY id`
   )
 
+  /* One query for the whole work, then grouped in JS — a copy usually has no
+     loans at all, and a statement per copy would mostly return nothing. */
+  const loansByCopy = new Map<number, CopyLoan[]>()
+  for (const loan of listLoansForWork(workId)) {
+    const existing = loansByCopy.get(loan.copyId)
+    if (existing) existing.push(loan)
+    else loansByCopy.set(loan.copyId, [loan])
+  }
+
   return {
     ...work,
     isWishlist: Boolean(work.isWishlist),
@@ -235,7 +247,10 @@ export function getWorkDetail(workId: number): WorkDetail | null {
     tags,
     editions: editions.map((edition) => ({
       ...edition,
-      copies: copyStmt.all(edition.id) as CopyDetail[],
+      copies: (copyStmt.all(edition.id) as Omit<CopyDetail, "loans">[]).map((copy) => ({
+        ...copy,
+        loans: loansByCopy.get(copy.id) ?? [],
+      })),
     })),
   }
 }

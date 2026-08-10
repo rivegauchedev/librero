@@ -336,7 +336,7 @@ export type CopyInput = {
   externalService?: string | null
 }
 
-function toUnix(date: Date | null | undefined): number | null {
+export function toUnix(date: Date | null | undefined): number | null {
   return date ? Math.floor(date.getTime() / 1000) : null
 }
 
