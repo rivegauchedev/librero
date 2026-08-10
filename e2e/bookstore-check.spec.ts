@@ -92,9 +92,10 @@ test("scan, add, then scan again and be told you already own it", async ({ page 
   await page.getByLabel("Where").fill(SHELF)
   await page.getByRole("button", { name: "Add to library" }).click()
 
-  // Generous: this is the first render of /works/[id] on a cold server, behind
-  // a Server Action that has just fetched metadata and downloaded a cover.
-  await expect(page).toHaveURL(/\/works\/\d+/, { timeout: 20_000 })
+  // Generous, and for a real reason: this is the first Server Action of the
+  // run, so it loads the action bundle, and it downloads the cover from Open
+  // Library before responding. On a slow day that is tens of seconds.
+  await expect(page).toHaveURL(/\/works\/\d+/, { timeout: 45_000 })
   await expect(page.getByRole("heading", { name: "Dune", level: 1 })).toBeVisible()
   await expect(page.getByText("Frank Herbert")).toBeVisible()
   await expect(page.getByText(/2 copies across 1 edition/)).toBeVisible()
