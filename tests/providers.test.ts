@@ -40,9 +40,25 @@ function mockNetwork(routes: Record<string, unknown | null>) {
 }
 
 const OPEN_LIBRARY_DUNE = {
+  "search.json?isbn=9780441013593": fixture("ol-search-isbn-dune.json"),
   "/isbn/9780441013593.json": fixture("ol-edition-dune.json"),
   "/works/OL893414W.json": fixture("ol-work-dune.json"),
   "/authors/OL79034A.json": fixture("ol-author-herbert.json"),
+}
+
+/*
+ * Circe (Bloomsbury 2018) is the regression case that prompted this design.
+ *
+ * Its Open Library *edition* record carries no authors and no page count, so
+ * the old implementation chased /works/ and then /authors/ — three sequential
+ * requests against an API measured at 5s, 4s and 10s. Against a 6s timeout the
+ * chain failed, and a perfectly well-catalogued book reported as "no book found
+ * for that ISBN".
+ */
+const OPEN_LIBRARY_CIRCE = {
+  "search.json?isbn=9781408890080": fixture("ol-search-isbn-circe.json"),
+  "/isbn/9781408890080.json": fixture("ol-edition-circe.json"),
+  "/works/OL18012166W.json": fixture("ol-work-circe.json"),
 }
 
 beforeEach(() => {
@@ -95,8 +111,87 @@ describe("openLibrary.lookupByIsbn", () => {
   })
 
   it("returns null for an ISBN Open Library has never seen", async () => {
-    mockNetwork({ "/isbn/": null })
+    mockNetwork({ "search.json": { docs: [] }, "/isbn/": null })
     expect(await openLibrary.lookupByIsbn("9780000000002", null)).toBeNull()
+  })
+})
+
+describe("openLibrary.lookupByIsbn — resilience", () => {
+  it("finds Circe, whose edition record has no authors or page count", async () => {
+    mockNetwork(OPEN_LIBRARY_CIRCE)
+
+    const book = await openLibrary.lookupByIsbn("9781408890080", null)
+
+    expect(book).not.toBeNull()
+    expect(book!.title).toBe("Circe")
+    // Both come from the search document, not the edition record.
+    expect(book!.authors).toEqual(["Madeline Miller"])
+    expect(book!.pageCount).toBe(404)
+    expect(book!.publisher).toBe("Bloombury")
+    expect(book!.publishYear).toBe(2018)
+  })
+
+  it("still returns the book when the edition endpoint is down", async () => {
+    // /isbn/ omitted entirely: any request to it throws in the mock.
+    mockNetwork({
+      "search.json?isbn=9781408890080": fixture("ol-search-isbn-circe.json"),
+      "/works/OL18012166W.json": fixture("ol-work-circe.json"),
+    })
+
+    const book = await openLibrary.lookupByIsbn("9781408890080", null)
+
+    expect(book).not.toBeNull()
+    expect(book!.title).toBe("Circe")
+    expect(book!.authors).toEqual(["Madeline Miller"])
+    // The ISBN we asked for is still recorded even without the edition record.
+    expect(book!.isbn13).toBe("9781408890080")
+  })
+
+  it("still returns the book when the work endpoint is down", async () => {
+    mockNetwork({
+      "search.json?isbn=9781408890080": fixture("ol-search-isbn-circe.json"),
+      "/isbn/9781408890080.json": fixture("ol-edition-circe.json"),
+    })
+
+    const book = await openLibrary.lookupByIsbn("9781408890080", null)
+
+    expect(book).not.toBeNull()
+    expect(book!.title).toBe("Circe")
+    // Only the description is lost — the book itself is not.
+    expect(book!.description).toBeNull()
+  })
+
+  it("skips the slow author endpoint when the edition names no authors", async () => {
+    // Circe's edition record has no `authors`, so there are no keys to fetch —
+    // the search document already supplied the name.
+    mockNetwork(OPEN_LIBRARY_CIRCE)
+
+    await openLibrary.lookupByIsbn("9781408890080", null)
+
+    const requested = (fetch as unknown as { mock: { calls: [string][] } }).mock.calls.map(
+      (call) => String(call[0])
+    )
+    expect(requested.some((url) => url.includes("/authors/"))).toBe(false)
+  })
+
+  it("prefers the edition's own author records over the work's aliases", async () => {
+    // The Dune search document lists ["Frank Herbert", "Френк Герберт"]; the
+    // edition's author record is the authoritative one.
+    mockNetwork(OPEN_LIBRARY_DUNE)
+
+    const book = await openLibrary.lookupByIsbn("9780441013593", "0441013597")
+
+    expect(book!.authors).toEqual(["Frank Herbert"])
+  })
+
+  it("falls back to the search document when the author endpoint fails", async () => {
+    const { "/authors/OL79034A.json": _dropped, ...withoutAuthors } = OPEN_LIBRARY_DUNE
+    mockNetwork(withoutAuthors)
+
+    const book = await openLibrary.lookupByIsbn("9780441013593", "0441013597")
+
+    expect(book).not.toBeNull()
+    expect(book!.authors).toContain("Frank Herbert")
   })
 })
 
