@@ -39,18 +39,34 @@ export function writeCache(provider: string, key: string, value: unknown): void 
     .run(provider, key, JSON.stringify(value), TTL_SECONDS)
 }
 
-/** Read-through cache around a provider call. Failures are never cached. */
+/**
+ * Read-through cache around a provider call.
+ *
+ * An empty answer is never cached. The providers swallow their own failures and
+ * return null, so a timeout or a rate limit is indistinguishable from "no such
+ * book" at this layer — and caching that for 30 days turns one slow afternoon
+ * into a month of a real book reporting as unknown. Only a result worth keeping
+ * gets kept.
+ */
 export async function cached<T>(
   provider: string,
   key: string,
   load: () => Promise<T>
 ): Promise<T> {
   const hit = readCache<T>(provider, key)
-  if (hit !== undefined) return hit
+  if (hit !== undefined && hit !== null) return hit
 
   const value = await load()
-  writeCache(provider, key, value)
+  const worthCaching =
+    value !== null && value !== undefined && !(Array.isArray(value) && value.length === 0)
+
+  if (worthCaching) writeCache(provider, key, value)
   return value
+}
+
+/** Drop every cached provider response. Used by `npm run cache:clear`. */
+export function clearCache(): number {
+  return sqlite.prepare("DELETE FROM metadata_cache").run().changes
 }
 
 export function purgeExpiredCache(): number {
