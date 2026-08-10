@@ -45,10 +45,19 @@ export async function lookupByIsbn(input: string): Promise<NormalizedBook | null
 }
 
 /**
- * Free-text search. Open Library only; Google Books is a fallback for when it
- * returns nothing at all, not a second set of results to merge — interleaving
- * two rankings makes the list worse, not better.
+ * Free-text search.
+ *
+ * Open Library leads, re-ranked locally (see ranking.ts). Google Books is
+ * appended only when Open Library came back thin — it has no work/edition model
+ * and no binding information, so its results are worth less, but a short list
+ * is worth padding. Appended rather than interleaved: merging two different
+ * relevance orderings makes both worse.
+ *
+ * Note that Google Books answers anonymous callers with 429 much of the time.
+ * Set GOOGLE_BOOKS_API_KEY if you want this fallback to actually fire.
  */
+const THIN_RESULT_COUNT = 5
+
 export async function searchBooks(
   query: string,
   limit = 20
@@ -58,7 +67,19 @@ export async function searchBooks(
 
   return cached("merged", `search:${limit}:${trimmed.toLowerCase()}`, async () => {
     const results = await openLibrary.search(trimmed, limit).catch(() => [])
-    if (results.length > 0) return results
-    return googleBooks.search(trimmed, limit).catch(() => [])
+    if (results.length >= THIN_RESULT_COUNT) return results
+
+    const extra = await googleBooks.search(trimmed, limit).catch(() => [])
+    if (extra.length === 0) return results
+
+    // Do not repeat a book Open Library already offered.
+    const seen = new Set(
+      results.map((r) => `${r.title.toLowerCase()}|${(r.authors[0] ?? "").toLowerCase()}`)
+    )
+    const fresh = extra.filter(
+      (r) => !seen.has(`${r.title.toLowerCase()}|${(r.authors[0] ?? "").toLowerCase()}`)
+    )
+
+    return [...results, ...fresh].slice(0, limit)
   })
 }

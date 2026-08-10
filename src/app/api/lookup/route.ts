@@ -159,7 +159,7 @@ export async function GET(request: Request) {
 
   const shelf = shelfMatches(query)
   try {
-    const results = await searchBooks(query, 12)
+    const results = await searchBooks(query, 20)
     return json({
       mode: "search",
       shelf,
