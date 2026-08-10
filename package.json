@@ -18,7 +18,8 @@
     "test:watch": "vitest",
     "test:e2e": "next build && playwright test",
     "reindex": "tsx --tsconfig tsconfig.scripts.json scripts/reindex.ts",
-    "book:add": "tsx --tsconfig tsconfig.scripts.json scripts/add-book.ts"
+    "book:add": "tsx --tsconfig tsconfig.scripts.json scripts/add-book.ts",
+    "cache:clear": "tsx --tsconfig tsconfig.scripts.json scripts/clear-cache.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
