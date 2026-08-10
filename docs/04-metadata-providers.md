@@ -177,6 +177,36 @@ a one-year cache header.
 A failed cover download returns `null` and is ignored — a missing thumbnail must never
 block adding a book.
 
+### Covers the user supplies
+
+An edition with no cover can be given one by pasting an image URL into
+**Edit edition**. The image is downloaded and stored exactly like a provider
+cover, so the shelf keeps working when the source link dies.
+
+Unlike a provider URL, this one comes from a person, and the server is the thing
+that fetches it. On a home server that means it can reach the router, the NAS,
+every other container on the bridge network, and on a VPS the metadata endpoint
+at `169.254.169.254` that hands out credentials. Without a guard, every
+signed-in user would have a general-purpose probe into your private network.
+
+So `src/lib/net.ts` vets the address before anything is fetched:
+
+- `http`/`https` only — no `file:`, no `data:`.
+- The hostname is resolved and **every** returned address must be public. A name
+  with one public and one loopback record is refused.
+- Redirects are followed manually and re-checked at each hop, because a public
+  URL is perfectly entitled to redirect to `127.0.0.1`.
+- Then the ordinary content-type and 5 MB limits apply.
+
+`ALLOW_PRIVATE_COVER_URLS=true` turns the network check off, for the legitimate
+case of a self-hoster pulling covers from their own Calibre box. It is their
+network; it is off by default because it should be a decision.
+
+One limitation, stated rather than hidden: this does not close the DNS-rebinding
+window between the check and the fetch. Doing so means resolving once and
+connecting to the literal address with a `Host` header, which Node's `fetch`
+cannot express. For a household app behind a login, that trade is proportionate.
+
 ## Testing them
 
 `tests/providers.test.ts` stubs `fetch` and routes each URL to a recorded fixture in

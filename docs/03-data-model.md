@@ -91,6 +91,11 @@ and want it at the same time.
 
 **Prices are integer cents.** Floats and money do not mix.
 
+**Covers are on the edition**, because a hardcover and a paperback do not share
+artwork. `cover_path` is a file in the local cover store; `cover_source_url`
+records where it came from, so the edit form can show what was pasted and skip
+re-downloading an unchanged address. Both are null for an edition with no cover.
+
 ## Matching keys
 
 Two derived columns exist purely so ownership matching can be fast and forgiving:

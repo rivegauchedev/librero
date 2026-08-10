@@ -42,6 +42,10 @@ deployment is behind Tailscale or a LAN.
 
 **Uploaded ebooks are downloaded, not read.** No in-browser reader.
 
+**Covers are set by URL, not uploaded.** Pasting a link works; choosing a file
+from your phone does not, yet. The storage side would be identical — it is the
+same content-addressed cover store — so this is a form, not a feature.
+
 **One series per book in the UI.** The schema supports several; the edit form exposes one.
 
 **CSV import matches on ISBN, then title+author.** Two genuinely different books with the
