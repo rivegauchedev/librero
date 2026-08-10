@@ -18,14 +18,15 @@ Everything the brief asked for:
 
 Things that are true today and worth knowing before you hit them.
 
-**Open Library's search ranking is poor for bare titles.** Searching `dune` returns the
-sequels above the original. Mitigated by putting your own shelf's matches first, but the
-provider list below them stays in Open Library's order.
-
 **`first_publish_year` is often the printing year.** Open Library's *work* records
-frequently lack `first_publish_date`, so the code falls back to the edition's publish
-date. Their search endpoint has the right value; using it would cost a second request per
-lookup.
+frequently lack `first_publish_date`. The lookup now prefers the search document's
+`first_publish_year` where it exists, and falls back to the edition's publish date
+otherwise, so this is much rarer than it was — but not impossible.
+
+**Open Library is slow, and that is visible.** A cold ISBN lookup takes three to
+seven seconds because their API does; the cache makes every repeat instant. If
+you are adding a shelf's worth of books in one sitting, the first scan of each is
+the slow one.
 
 **One SQLite connection per process, deliberately.** `src/db/index.ts` caches the
 handle on `globalThis` unconditionally. Next compiles route handlers, Server Actions and

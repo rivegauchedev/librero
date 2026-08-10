@@ -72,6 +72,7 @@ own webcam.
 | `npm run db:studio` | Drizzle Studio against the local database |
 | `npm run seed:admin` | Create the first administrator (no-op if any user exists) |
 | `npm run reindex` | Rebuild the full-text search index |
+| `npm run cache:clear` | Empty the Open Library / Google Books response cache |
 | `npm run book:add -- <isbn>` | Add a book from the command line |
 | `./scripts/backup.sh [dir]` | Snapshot the database and uploads to a tarball |
 
