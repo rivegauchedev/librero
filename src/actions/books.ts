@@ -11,13 +11,20 @@ import {
   deleteEdition,
   deleteWork,
   importBook,
+  isCoverReferenced,
+  setEditionCover,
   updateCopy,
   updateEdition,
   updateWork,
 } from "@/db/mutations/catalog"
 import { EDITION_FORMATS, FILE_FORMATS, READING_STATUSES } from "@/db/schema"
 import { assertUser, AuthorizationError } from "@/lib/auth"
-import { cacheCover } from "@/lib/covers"
+import {
+  cacheCover,
+  cacheCoverFromUserUrl,
+  CoverError,
+  deleteCoverIfUnused,
+} from "@/lib/covers"
 import { lookupByIsbn } from "@/lib/providers"
 import { deleteCopyFiles } from "@/lib/uploads"
 
@@ -54,6 +61,9 @@ export type BookActionState = {
 
 function fail(error: unknown): BookActionState {
   if (error instanceof AuthorizationError) return { error: error.message }
+  // A cover error names something the user can act on: a bad link, an oversized
+  // image, a host we will not fetch from.
+  if (error instanceof CoverError) return { error: error.message }
   if (error instanceof Error && error.message.includes("UNIQUE")) {
     return { error: "That ISBN is already recorded on another edition." }
   }
@@ -448,16 +458,63 @@ export async function saveEdition(
     await assertUser()
 
     const parsed = editionSchema
-      .extend({ editionId: z.coerce.number().int().positive() })
+      .extend({
+        editionId: z.coerce.number().int().positive(),
+        coverUrl: optionalText,
+      })
       .safeParse(Object.fromEntries(formData))
     if (!parsed.success) {
       return { error: parsed.error.issues[0]?.message ?? "Invalid input" }
     }
-    const { editionId, workId, ...rest } = parsed.data
+    const { editionId, workId, coverUrl, ...rest } = parsed.data
+
+    // Download before touching the database: a bad URL should leave the edition
+    // exactly as it was, with an error the user can act on.
+    let cover: { path: string; source: string } | null = null
+    if (coverUrl) {
+      const existing = sqlite
+        .prepare("SELECT cover_source_url AS source FROM editions WHERE id = ?")
+        .get(editionId) as { source: string | null } | undefined
+
+      // Re-downloading an unchanged URL would be wasted work.
+      if (existing?.source !== coverUrl) {
+        cover = { path: await cacheCoverFromUserUrl(coverUrl), source: coverUrl }
+      }
+    }
 
     updateEdition(editionId, { ...rest, title: null })
+
+    if (cover) {
+      const displaced = setEditionCover(editionId, cover.path, cover.source)
+      if (displaced) await deleteCoverIfUnused(displaced, isCoverReferenced)
+    }
+
     refresh(workId)
-    return { workId, success: "Edition saved." }
+    return { workId, success: cover ? "Edition and cover saved." : "Edition saved." }
+  } catch (error) {
+    return fail(error)
+  }
+}
+
+/** Drop an edition's cover, deleting the cached file if nothing else uses it. */
+export async function removeEditionCover(
+  _prev: BookActionState,
+  formData: FormData
+): Promise<BookActionState> {
+  try {
+    await assertUser()
+
+    const editionId = Number(formData.get("editionId"))
+    const workId = Number(formData.get("workId"))
+    if (!Number.isInteger(editionId) || editionId <= 0) {
+      return { error: "Invalid edition." }
+    }
+
+    const displaced = setEditionCover(editionId, null, null)
+    if (displaced) await deleteCoverIfUnused(displaced, isCoverReferenced)
+
+    refresh(workId)
+    return { workId, success: "Cover removed." }
   } catch (error) {
     return fail(error)
   }
