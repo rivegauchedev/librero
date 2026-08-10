@@ -1,0 +1,26 @@
+# HTTPS in front of Librero.
+#
+# The barcode scanner uses getUserMedia, which browsers only expose on a secure
+# origin — so on a phone, plain HTTP means no scanning. That is the whole reason
+# this file exists.
+#
+# LIBRERO_HOSTNAME=books.example.com  -> automatic Let's Encrypt certificate
+# LIBRERO_HOSTNAME=localhost (default) -> Caddy's own local CA, fine on a LAN
+#   (install Caddy's root certificate on the phone, or use Tailscale Serve
+#   instead and drop this service from docker-compose.yml)
+
+{$LIBRERO_HOSTNAME:localhost} {
+	encode zstd gzip
+
+	# Ebook uploads are large; the app's own limit is MAX_UPLOAD_MB.
+	request_body {
+		max_size 128MB
+	}
+
+	reverse_proxy librero:3000
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+}

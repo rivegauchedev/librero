@@ -1,0 +1,51 @@
+services:
+  librero:
+    build: .
+    image: librero:latest
+    restart: unless-stopped
+    environment:
+      # Required. Generate with: openssl rand -base64 48
+      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in .env}
+      # Used once, when the users table is empty.
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      # Open Library asks automated clients for a contact address.
+      LIBRERO_CONTACT_EMAIL: ${LIBRERO_CONTACT_EMAIL:-}
+      GOOGLE_BOOKS_API_KEY: ${GOOGLE_BOOKS_API_KEY:-}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-100}
+    volumes:
+      # Everything mutable lives here: librero.db plus uploads/. Back up this
+      # one directory and you have backed up the whole application.
+      - librero-data:/data
+    expose:
+      - "3000"
+    # Not published to the host: Caddy is the only way in, so the app is never
+    # reachable over plain HTTP. Drop this service and publish 3000 directly if
+    # you are terminating TLS elsewhere (Tailscale Serve, an existing reverse
+    # proxy). The camera-based barcode scanner needs a secure origin.
+    networks: [librero]
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on: [librero]
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      # A real hostname gets an automatic Let's Encrypt certificate. Leave the
+      # default for a LAN-only install and Caddy issues a local certificate.
+      LIBRERO_HOSTNAME: ${LIBRERO_HOSTNAME:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks: [librero]
+
+volumes:
+  librero-data:
+  caddy-data:
+  caddy-config:
+
+networks:
+  librero:
