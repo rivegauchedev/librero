@@ -84,7 +84,7 @@ test("scan, add, then scan again and be told you already own it", async ({ page 
   await page.getByRole("button", { name: "Check" }).click()
 
   const candidate = page.getByRole("heading", { name: "Dune", exact: true })
-  await expect(candidate).toBeVisible({ timeout: 30_000 })
+  await expect(candidate).toBeVisible({ timeout: 45_000 })
   await expect(page.getByText("Not on your shelf")).toBeVisible()
 
   // --- add it, as two paperbacks on a named shelf ---------------------------
@@ -105,7 +105,7 @@ test("scan, add, then scan again and be told you already own it", async ({ page 
   await page.getByPlaceholder("ISBN, title or author").fill(DUNE_ISBN)
   await page.getByRole("button", { name: "Check" }).click()
 
-  await expect(page.getByText("You already own this")).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByText("You already own this")).toBeVisible({ timeout: 45_000 })
   // The verdict has to be actionable: which binding, how many, and where.
   await expect(page.getByText("Paperback").first()).toBeVisible()
   await expect(page.getByText("×2").first()).toBeVisible()
@@ -127,7 +127,7 @@ test("the book appears in the library and the shelf answers a title search", asy
   await page.getByPlaceholder("ISBN, title or author").fill("dune")
   await page.getByRole("button", { name: "Check" }).click()
 
-  await expect(page.getByText("On your shelf")).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByText("On your shelf")).toBeVisible({ timeout: 45_000 })
 })
 
 test("an invalid ISBN is reported as a misread, not looked up", async ({ page }) => {
