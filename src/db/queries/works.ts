@@ -148,6 +148,7 @@ export type EditionDetail = {
   format: EditionFormat
   editionNote: string | null
   coverPath: string | null
+  coverSourceUrl: string | null
   copies: CopyDetail[]
 }
 
@@ -212,7 +213,7 @@ export function getWorkDetail(workId: number): WorkDetail | null {
     .prepare(
       `SELECT id, isbn10, isbn13, title, publisher, publish_year AS publishYear,
               page_count AS pageCount, language, format, edition_note AS editionNote,
-              cover_path AS coverPath
+              cover_path AS coverPath, cover_source_url AS coverSourceUrl
          FROM editions WHERE work_id = ? ORDER BY publish_year, id`
     )
     .all(workId) as Omit<EditionDetail, "copies">[]

@@ -217,6 +217,38 @@ export function createEdition(input: EditionInput): number {
   return Number(result.lastInsertRowid)
 }
 
+/**
+ * Replace an edition's cover. Returns the file name it displaced, if any, so
+ * the caller can garbage-collect it once nothing else refers to it.
+ */
+export function setEditionCover(
+  editionId: number,
+  coverPath: string | null,
+  coverSourceUrl: string | null
+): string | null {
+  const previous = sqlite
+    .prepare("SELECT cover_path AS coverPath FROM editions WHERE id = ?")
+    .get(editionId) as { coverPath: string | null } | undefined
+
+  sqlite
+    .prepare(
+      `UPDATE editions SET cover_path = ?, cover_source_url = ?, updated_at = unixepoch()
+        WHERE id = ?`
+    )
+    .run(coverPath, coverSourceUrl, editionId)
+
+  const displaced = previous?.coverPath ?? null
+  return displaced && displaced !== coverPath ? displaced : null
+}
+
+/** True while any edition still points at this cached cover file. */
+export function isCoverReferenced(fileName: string): boolean {
+  const row = sqlite
+    .prepare("SELECT 1 AS hit FROM editions WHERE cover_path = ? LIMIT 1")
+    .get(fileName) as { hit: number } | undefined
+  return row !== undefined
+}
+
 export function updateEdition(editionId: number, input: Omit<EditionInput, "workId">): void {
   sqlite
     .prepare(
