@@ -94,6 +94,16 @@ no other state.
 | [07 Actions and APIs](docs/07-actions-and-apis.md) | Every Server Action and route |
 | [08 Roadmap](docs/08-roadmap.md) | What is deliberately not built yet |
 
+## License
+
+[PolyForm Noncommercial 1.0.0](LICENSE) — copyright 2026 Gerson Umanzor.
+
+Run it, change it, share it, host it for yourself, your household or a non-profit: all
+fine. Selling it, or using it commercially — as a paid product, a hosted service, or
+inside a for-profit business — is not permitted without a separate licence. Ask me.
+
+Third-party components keep their own licences; see [Credits](#credits).
+
 ## Credits
 
 The UI is forked from [rivegauchedev/design-system](https://github.com/rivegauchedev/design-system),
