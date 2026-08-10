@@ -1,0 +1,40 @@
+{
+  "_comment": "Hand-authored to the documented Google Books volumes shape. A live capture was not possible: books.googleapis.com returns 429 to unauthenticated callers from shared IPs.",
+  "kind": "books#volumes",
+  "totalItems": 1,
+  "items": [
+    {
+      "kind": "books#volume",
+      "id": "B1hSG45JCX4C",
+      "etag": "5N2h0nQEZ8s",
+      "selfLink": "https://www.googleapis.com/books/v1/volumes/B1hSG45JCX4C",
+      "volumeInfo": {
+        "title": "Dune",
+        "authors": ["Frank Herbert"],
+        "publisher": "Ace Trade",
+        "publishedDate": "2005-08-02",
+        "description": "Set on the desert planet Arrakis, Dune is the story of the boy Paul Atreides, heir to a noble family tasked with ruling an inhospitable world where the only thing of value is the spice melange.",
+        "industryIdentifiers": [
+          { "type": "ISBN_13", "identifier": "9780441013593" },
+          { "type": "ISBN_10", "identifier": "0441013597" }
+        ],
+        "pageCount": 544,
+        "printType": "BOOK",
+        "categories": ["Fiction / Science Fiction / Action & Adventure"],
+        "averageRating": 4.5,
+        "ratingsCount": 812,
+        "maturityRating": "NOT_MATURE",
+        "language": "en",
+        "previewLink": "https://books.google.com/books?id=B1hSG45JCX4C&printsec=frontcover",
+        "infoLink": "https://books.google.com/books?id=B1hSG45JCX4C",
+        "canonicalVolumeLink": "https://books.google.com/books/about/Dune.html?id=B1hSG45JCX4C",
+        "imageLinks": {
+          "smallThumbnail": "http://books.google.com/books/content?id=B1hSG45JCX4C&printsec=frontcover&img=1&zoom=5&source=gbs_api",
+          "thumbnail": "http://books.google.com/books/content?id=B1hSG45JCX4C&printsec=frontcover&img=1&zoom=2&source=gbs_api"
+        }
+      },
+      "saleInfo": { "country": "US", "saleability": "NOT_FOR_SALE", "isEbook": false },
+      "accessInfo": { "country": "US", "viewability": "PARTIAL", "embeddable": true }
+    }
+  ]
+}
