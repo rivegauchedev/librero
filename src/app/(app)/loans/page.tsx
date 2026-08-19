@@ -14,11 +14,11 @@ export default async function LoansPage() {
   const returned = listRecentlyReturned(10)
 
   return (
-    <div className="flex flex-col gap-6 px-4 lg:px-6">
+    <div className="flex max-w-[1180px] flex-col gap-6 px-4 lg:px-7">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">On loan</h1>
-          <p className="text-muted-foreground">
+          <h1 className="font-serif text-4xl leading-[1.1] font-medium">Lent out</h1>
+          <p className="text-muted-foreground mt-1.5 text-[15px]">
             Books that are out of the house, and who has them.
           </p>
         </div>
@@ -31,7 +31,7 @@ export default async function LoansPage() {
       </div>
 
       {open.length === 0 ? (
-        <p className="text-muted-foreground rounded-lg border border-dashed p-8 text-sm">
+        <p className="text-muted-foreground bg-card rounded-2xl border border-dashed p-8 text-sm">
           Nothing is lent out. Use &ldquo;Lend&rdquo; next to any copy on a book&rsquo;s
           page.
         </p>
@@ -41,7 +41,7 @@ export default async function LoansPage() {
 
       {returned.length > 0 ? (
         <div className="flex flex-col gap-2">
-          <h2 className="text-lg font-semibold tracking-tight">Recently returned</h2>
+          <h2 className="font-serif text-xl font-medium">Recently returned</h2>
           <ReturnedLoansTable loans={returned} />
         </div>
       ) : null}

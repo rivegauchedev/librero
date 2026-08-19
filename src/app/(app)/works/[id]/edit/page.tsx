@@ -21,7 +21,7 @@ export default async function EditWorkPage({
   if (!work) notFound()
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 lg:px-6">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 lg:px-7">
       <Button asChild variant="ghost" size="sm" className="-ml-2 self-start">
         <Link href={`/works/${work.id}`}>
           <ArrowLeft />
@@ -30,7 +30,7 @@ export default async function EditWorkPage({
       </Button>
 
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Edit book</h1>
+        <h1 className="font-serif text-3xl font-medium">Edit book</h1>
         <p className="text-muted-foreground">
           These details describe the book itself. Editions and copies are edited on the
           book&rsquo;s own page.

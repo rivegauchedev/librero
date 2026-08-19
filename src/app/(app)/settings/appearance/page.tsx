@@ -16,9 +16,9 @@ export default function AppearanceSettings() {
   const { theme, setTheme } = useTheme()
 
   return (
-    <div className="space-y-6 px-4 lg:px-6">
+    <div className="space-y-6 px-4 lg:px-7">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Appearance</h1>
+        <h1 className="font-serif text-3xl font-medium">Appearance</h1>
         <p className="text-muted-foreground">How Librero looks on this device.</p>
       </div>
 

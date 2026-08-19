@@ -1,33 +1,43 @@
 "use client"
 
 import * as React from "react"
-import { AppSidebar } from "@/components/app-sidebar"
+import { AppSidebar, type NavCounts } from "@/components/app-sidebar"
+import type { Room } from "@/components/nav-rooms"
 import { SiteHeader } from "@/components/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { useSidebarConfig } from "@/hooks/use-sidebar-config"
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({
+  counts,
+  rooms,
+  children,
+}: {
+  counts: NavCounts
+  rooms: Room[]
+  children: React.ReactNode
+}) {
   const { config } = useSidebarConfig()
 
   return (
     <SidebarProvider
       style={
         {
-          "--sidebar-width": "16rem",
+          "--sidebar-width": "15rem",
           "--sidebar-width-icon": "3rem",
-          "--header-height": "calc(var(--spacing) * 14)",
+          "--header-height": "3.75rem",
         } as React.CSSProperties
       }
       className={config.collapsible === "none" ? "sidebar-none-mode" : ""}
     >
-      <AppSidebar variant={config.variant} collapsible={config.collapsible} />
+      <AppSidebar
+        variant={config.variant}
+        collapsible={config.collapsible}
+        counts={counts}
+        rooms={rooms}
+      />
       <SidebarInset>
         <SiteHeader />
-        <div className="flex flex-1 flex-col">
-          <div className="@container/main flex flex-1 flex-col gap-2">
-            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">{children}</div>
-          </div>
-        </div>
+        <div className="@container/main flex flex-1 flex-col py-7">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   )

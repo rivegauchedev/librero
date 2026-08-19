@@ -4,7 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SidebarConfigProvider } from "@/contexts/sidebar-context";
 import { Toaster } from "@/components/ui/sonner";
-import { inter } from "@/lib/fonts";
+import { inter, newsreader } from "@/lib/fonts";
 
 export const metadata: Metadata = {
   title: "Librero",
@@ -17,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} antialiased`} suppressHydrationWarning>
+    <html lang="en" className={`${inter.variable} ${newsreader.variable} antialiased`} suppressHydrationWarning>
       <body className={inter.className}>
         <ThemeProvider defaultTheme="system" storageKey="librero-theme">
           <SidebarConfigProvider>

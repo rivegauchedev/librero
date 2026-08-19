@@ -23,11 +23,11 @@ import {
 } from "@/components/ui/command"
 
 const PAGES = [
-  { title: "Overview", url: "/", icon: LayoutDashboard },
+  { title: "Reading room", url: "/", icon: LayoutDashboard },
   { title: "Check a book", url: "/search", icon: ScanBarcode },
-  { title: "My books", url: "/library", icon: Library },
-  { title: "Wishlist", url: "/wishlist", icon: Heart },
-  { title: "Import", url: "/import", icon: Upload },
+  { title: "The shelves", url: "/library", icon: Library },
+  { title: "Wanted", url: "/wishlist", icon: Heart },
+  { title: "Bring books in", url: "/import", icon: Upload },
   { title: "Settings", url: "/settings/account", icon: Settings },
 ]
 
@@ -140,12 +140,12 @@ export function SearchTrigger({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="border-input bg-background hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring text-muted-foreground relative inline-flex h-8 w-full items-center justify-start gap-2 rounded-md border px-3 py-1 text-sm font-medium whitespace-nowrap shadow-sm transition-colors focus-visible:ring-1 focus-visible:outline-none sm:pr-12 md:w-36 lg:w-56"
+      className="border-input bg-card hover:bg-accent text-muted-foreground focus-visible:ring-ring relative inline-flex h-8.5 w-full max-w-[300px] items-center justify-start gap-2 rounded-full border px-3.5 pr-12 text-sm whitespace-nowrap transition-colors focus-visible:ring-1 focus-visible:outline-none"
     >
-      <Search className="h-3.5 w-3.5" />
-      <span>Search…</span>
-      <kbd className="bg-muted pointer-events-none absolute top-1.5 right-1.5 hidden h-4 items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium select-none sm:flex">
-        <span className="text-xs">⌘</span>K
+      <Search className="size-3.5 shrink-0" />
+      <span className="truncate">Find anything on your shelves…</span>
+      <kbd className="bg-muted pointer-events-none absolute top-1.5 right-2 hidden h-5 items-center rounded-md border px-1.5 font-mono text-[10px] font-medium select-none sm:flex">
+        ⌘K
       </kbd>
     </button>
   )

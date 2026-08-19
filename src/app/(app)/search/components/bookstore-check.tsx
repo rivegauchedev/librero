@@ -17,11 +17,60 @@ type State =
   | { kind: "error"; message: string }
   | { kind: "results"; response: LookupResponse; query: string }
 
-export function BookstoreCheck() {
-  const [query, setQuery] = React.useState("")
+/**
+ * One lookup, returning the state it produces rather than setting it. Keeping
+ * the fetch free of setState lets both the submit handler and the arrived-with-
+ * a-query effect share it without either of them writing state synchronously.
+ */
+async function lookup(query: string, signal?: AbortSignal): Promise<State> {
+  try {
+    // cache: "no-store" as well as the response header — belt and braces on a
+    // request whose answer changes the moment you add the book.
+    const response = await fetch(`/api/lookup?q=${encodeURIComponent(query)}`, {
+      cache: "no-store",
+      signal,
+    })
+
+    if (!response.ok) {
+      const body = (await response.json().catch(() => ({}))) as { error?: string }
+      return {
+        kind: "error",
+        message: body.error ?? "The lookup failed. Please try again.",
+      }
+    }
+
+    return {
+      kind: "results",
+      response: (await response.json()) as LookupResponse,
+      query,
+    }
+  } catch {
+    return { kind: "error", message: "Could not reach the server." }
+  }
+}
+
+export function BookstoreCheck({ initialQuery = "" }: { initialQuery?: string }) {
+  const seed = initialQuery.trim()
+
+  const [query, setQuery] = React.useState(initialQuery)
   const [scanning, setScanning] = React.useState(false)
-  const [state, setState] = React.useState<State>({ kind: "idle" })
+  // A query handed over in the URL is already the user's intent, so the first
+  // paint is the spinner rather than an empty form that flashes into one.
+  const [state, setState] = React.useState<State>(
+    seed.length >= 2 ? { kind: "loading" } : { kind: "idle" }
+  )
   const requestId = React.useRef(0)
+
+  React.useEffect(() => {
+    if (seed.length < 2) return
+
+    const controller = new AbortController()
+    const id = ++requestId.current
+    void lookup(seed, controller.signal).then((next) => {
+      if (id === requestId.current) setState(next)
+    })
+    return () => controller.abort()
+  }, [seed])
 
   const run = React.useCallback(async (value: string) => {
     const trimmed = value.trim()
@@ -34,32 +83,8 @@ export function BookstoreCheck() {
     const id = ++requestId.current
     setState({ kind: "loading" })
 
-    try {
-      // cache: "no-store" as well as the response header — belt and braces on a
-      // request whose answer changes the moment you add the book.
-      const response = await fetch(`/api/lookup?q=${encodeURIComponent(trimmed)}`, {
-        cache: "no-store",
-      })
-      if (id !== requestId.current) return
-
-      if (!response.ok) {
-        const body = (await response.json().catch(() => ({}))) as { error?: string }
-        setState({
-          kind: "error",
-          message: body.error ?? "The lookup failed. Please try again.",
-        })
-        return
-      }
-
-      setState({
-        kind: "results",
-        response: (await response.json()) as LookupResponse,
-        query: trimmed,
-      })
-    } catch {
-      if (id !== requestId.current) return
-      setState({ kind: "error", message: "Could not reach the server." })
-    }
+    const next = await lookup(trimmed)
+    if (id === requestId.current) setState(next)
   }, [])
 
   const onScanned = React.useCallback(
@@ -78,7 +103,7 @@ export function BookstoreCheck() {
           event.preventDefault()
           void run(query)
         }}
-        className="flex gap-2"
+        className="flex gap-2.5"
       >
         <Input
           value={query}
@@ -86,20 +111,24 @@ export function BookstoreCheck() {
           placeholder="ISBN, title or author"
           inputMode="search"
           autoFocus
-          className="h-11 text-base"
+          className="bg-card h-13 rounded-xl px-4 text-[17px] md:text-[17px]"
         />
-        <Button type="submit" size="lg" disabled={query.trim().length < 2}>
+        <Button
+          type="submit"
+          disabled={query.trim().length < 2}
+          className="h-13 shrink-0 rounded-xl px-5 text-[15px]"
+        >
           <Search />
           <span className="sr-only sm:not-sr-only">Check</span>
         </Button>
         <Button
           type="button"
-          size="lg"
           variant={scanning ? "secondary" : "outline"}
           onClick={() => setScanning((open) => !open)}
+          className="h-13 shrink-0 rounded-xl px-5"
         >
           <ScanBarcode />
-          <span className="sr-only">{scanning ? "Close camera" : "Scan a barcode"}</span>
+          <span className="sr-only sm:not-sr-only">{scanning ? "Close" : "Scan"}</span>
         </Button>
       </form>
 
@@ -211,9 +240,9 @@ function EmptyState({
   query: string
 }) {
   return (
-    <div className="flex flex-col items-start gap-3 rounded-lg border border-dashed p-6">
+    <div className="bg-card flex flex-col items-start gap-3 rounded-2xl border border-dashed p-6">
       <div>
-        <p className="font-medium">{title}</p>
+        <p className="font-serif text-lg font-medium">{title}</p>
         <p className="text-muted-foreground text-sm">{body}</p>
       </div>
       <Button asChild variant="outline" size="sm">

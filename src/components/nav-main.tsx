@@ -29,6 +29,8 @@ export function NavMain({
     title: string
     url: string
     icon?: LucideIcon
+    /** Printed right-aligned — how many things are behind this link. */
+    count?: number
     isActive?: boolean
     items?: {
       title: string
@@ -89,6 +91,11 @@ export function NavMain({
                   <Link href={item.url}>
                     {item.icon && <item.icon />}
                     <span>{item.title}</span>
+                    {item.count ? (
+                      <span className="text-muted-foreground ml-auto text-[11px] tabular-nums">
+                        {item.count}
+                      </span>
+                    ) : null}
                   </Link>
                 </SidebarMenuButton>
               )}

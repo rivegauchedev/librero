@@ -29,9 +29,9 @@ export default async function AdminUsersPage() {
   const neverSignedIn = rows.filter((row) => row.lastLoginAt === null).length
 
   return (
-    <div className="flex flex-col gap-6 px-4 lg:px-6">
+    <div className="flex flex-col gap-6 px-4 lg:px-7">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Users</h1>
+        <h1 className="font-serif text-3xl font-medium">Users</h1>
         <p className="text-muted-foreground">
           Everyone here shares one library. Administrators can also manage accounts.
         </p>
