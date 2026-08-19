@@ -58,7 +58,11 @@ test("a lent-out copy cannot be removed", async ({ page }) => {
 
   await page.getByRole("button", { name: "Remove copy" }).click()
 
-  await expect(page.getByText(/lent out/i)).toBeVisible({ timeout: 20_000 })
+  // The exact refusal, not a loose /lent out/ — the sidebar now has a "Lent out"
+  // link, and a substring match would pass on the navigation instead of the toast.
+  await expect(
+    page.getByText("That copy is lent out. Mark it returned before removing it.")
+  ).toBeVisible({ timeout: 20_000 })
   // Still there — the guard refused rather than deleting the loan history.
   await expect(page.getByText("Lent to Ana")).toBeVisible()
 })
@@ -73,7 +77,14 @@ test("mark it returned from the loans page", async ({ page }) => {
     timeout: 20_000,
   })
   // The one remaining row is the "Recently returned" entry, not an open loan.
-  await expect(page.getByRole("button", { name: /Mark .* returned by Ana/ })).toBeHidden()
+  //
+  // Given the same generous timeout as the count above, deliberately: the row
+  // count can be satisfied while the action is still in flight and the button
+  // still reads "Saving…", so this is the assertion that actually waits for the
+  // revalidation to land. The default five seconds made it a coin toss.
+  await expect(
+    page.getByRole("button", { name: /Mark .* returned by Ana/ })
+  ).toBeHidden({ timeout: 20_000 })
 
   // Back on the book: lendable again, with the past loan kept as history.
   await openTheBook(page)

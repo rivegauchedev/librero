@@ -141,3 +141,38 @@ describe("export round trip", () => {
     expect(hobbit.quantity).toBe("")
   })
 })
+
+/*
+ * The export is advertised as an escape hatch that reproduces the catalogue
+ * exactly, so every field someone can edit has to survive the round trip.
+ * `current_page` was added after the first release; this is here so it is not
+ * quietly dropped again.
+ */
+describe("reading position survives the round trip", () => {
+  const header =
+    "title,authors,reading_status,rating,current_page,format,medium,quantity\n"
+
+  it("reads a page number back out of a Librero CSV", () => {
+    const parsed = parseCsv(header + "Dune,Frank Herbert,reading,,120,paperback,physical,1\n")
+    expect(parsed.dialect).toBe("librero")
+    expect(parsed.rows[0]!.currentPage).toBe(120)
+  })
+
+  it("treats a blank page as untracked rather than page zero", () => {
+    const parsed = parseCsv(header + "Dune,Frank Herbert,reading,,,paperback,physical,1\n")
+    expect(parsed.rows[0]!.currentPage).toBeNull()
+  })
+
+  it("keeps page zero distinct from blank", () => {
+    const parsed = parseCsv(header + "Dune,Frank Herbert,reading,,0,paperback,physical,1\n")
+    expect(parsed.rows[0]!.currentPage).toBe(0)
+  })
+
+  it("still imports a CSV written before the column existed", () => {
+    const parsed = parseCsv(
+      "title,authors,reading_status,format,medium,quantity\nDune,Frank Herbert,read,paperback,physical,1\n"
+    )
+    expect(parsed.problems).toHaveLength(0)
+    expect(parsed.rows[0]!.currentPage).toBeNull()
+  })
+})
