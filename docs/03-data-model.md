@@ -40,6 +40,7 @@ erDiagram
         string open_library_work_id UK
         string reading_status "unread|reading|read"
         int rating "1-5, nullable"
+        int current_page "how far in, nullable"
         bool is_wishlist "wanted, zero copies"
     }
     editions {
@@ -85,9 +86,22 @@ erDiagram
 the 2005 Ace printing. Recording it per edition would mean re-entering it every time you
 bought another copy.
 
+**`current_page` is nullable, and null is not zero.** Null means you are not tracking how
+far in you are; zero would mean you are on page zero. Only the first is common, and the
+reading room shows a progress bar for a book only when it has both a page and an edition
+that records a page count. Finishing or re-shelving a book clears it.
+
 **`quantity` is on the `copy`.** This is the "I own two of the same edition" case the
 brief called out: two identical paperbacks are one copy row with `quantity = 2`, not two
 rows. Two *different* printings are two editions.
+
+**Rooms are read out of `location`, not stored.** `location` is free text — "Office / B4".
+The sidebar's room list and the shelves view derive a room and a shelf from it by
+splitting on the first `/`, `,` or `·`, case- and whitespace-insensitively, so
+"Stairs / C2" and "Stairs/C2" are one shelf. This is a convention, not a constraint:
+nothing stops two spellings of a room from drifting apart, and only the owner can decide
+that "Staits" was meant to be "Stairs". A real `rooms` table would fix that, at the cost
+of making everyone fill one in. See `src/lib/shelves.ts`.
 
 **`location` is on the copy, not the edition.** Your hardcover is in the office and your
 paperback is by the bed.
