@@ -94,6 +94,7 @@ no other state.
 | [06 Deployment](docs/06-deployment.md) | Docker, HTTPS, backup and restore |
 | [07 Actions and APIs](docs/07-actions-and-apis.md) | Every Server Action and route |
 | [08 Roadmap](docs/08-roadmap.md) | What is deliberately not built yet |
+| [09 SaaS architecture](docs/09-saas-architecture.md) | Research: what a hosted subscription offering would require |
 
 ## License
 
