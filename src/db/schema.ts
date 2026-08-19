@@ -91,6 +91,14 @@ export const works = sqliteTable(
       .default("unread"),
     /** 1-5, or null when unrated. */
     rating: integer("rating"),
+    /*
+     * How far in you are, as a page number. Null means "not tracking it" —
+     * which is different from page 0, and is why the overview shows a bar for
+     * some books you are reading and none for others. The denominator is the
+     * page count of the edition you actually hold, so progress is only ever a
+     * percentage when that edition records one.
+     */
+    currentPage: integer("current_page"),
     dateFinished: integer("date_finished", { mode: "timestamp" }),
     notes: text("notes"),
     /** A wanted-but-not-owned book: flagged here, with zero copies. */

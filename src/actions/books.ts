@@ -286,6 +286,12 @@ const readingStatusSchema = z.object({
     .trim()
     .transform((value) => (value === "" || value === "0" ? null : Number(value)))
     .pipe(z.number().int().min(1).max(5).nullable()),
+  /* Blank means "not tracking it", which is a different thing from page 0. */
+  currentPage: z
+    .string()
+    .trim()
+    .transform((value) => (value === "" ? null : Number(value)))
+    .pipe(z.number().int().min(0).nullable()),
   notes: optionalText,
 })
 
@@ -306,6 +312,12 @@ export async function saveReadingProgress(
       .prepare(
         `UPDATE works SET
            reading_status = ?, rating = ?, notes = ?,
+           /* Finishing a book puts you at the end of it; shelving one you have
+              not started clears the page so the nightstand bar goes with it. */
+           current_page = CASE ?
+                            WHEN 'unread' THEN NULL
+                            ELSE ?
+                          END,
            date_finished = CASE WHEN ? = 'read' AND date_finished IS NULL
                                 THEN unixepoch() ELSE date_finished END,
            updated_at = unixepoch()
@@ -315,6 +327,8 @@ export async function saveReadingProgress(
         input.readingStatus,
         input.rating,
         input.notes,
+        input.readingStatus,
+        input.currentPage,
         input.readingStatus,
         input.workId
       )
