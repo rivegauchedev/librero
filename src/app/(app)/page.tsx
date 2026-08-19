@@ -38,7 +38,7 @@ export default async function OverviewPage() {
   const reading = listCurrentlyReading()
 
   return (
-    <div className="flex max-w-[1180px] flex-col gap-8 px-4 lg:px-7">
+    <div className="flex max-w-[1600px] flex-col gap-8 px-4 lg:px-7">
       <div className="flex flex-wrap items-end justify-between gap-5">
         <div>
           <h1 className="font-serif text-4xl leading-[1.1] font-medium tracking-[-0.01em]">
@@ -49,7 +49,14 @@ export default async function OverviewPage() {
           </p>
         </div>
 
-        <dl className="bg-muted flex items-center gap-5 rounded-full px-4.5 py-2.5">
+        {/*
+          Wraps on purpose. Four figures side by side are wider than a phone,
+          and a pill that cannot wrap widened the layout viewport rather than
+          overflowing visibly — the page looked fine and scrolled sideways. It
+          softens to a rounded rectangle when it wraps, and is a pill when it
+          fits on one line.
+        */}
+        <dl className="bg-muted flex flex-wrap items-center justify-center gap-x-4 gap-y-1 rounded-2xl px-4 py-2 sm:gap-x-5 sm:rounded-full sm:px-4.5 sm:py-2.5">
           {[
             { value: stats.works, label: "books" },
             { value: stats.copies, label: "copies" },
@@ -117,7 +124,7 @@ export default async function OverviewPage() {
           <p className="text-muted-foreground text-sm">Nothing here yet.</p>
         ) : (
           <Shelf>
-            <div className="grid grid-cols-3 items-end gap-5 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(6rem,1fr))] items-end gap-5 sm:grid-cols-[repeat(auto-fill,minmax(8rem,1fr))]">
               {recent.map((work) => (
                 <BookCard key={work.id} work={work} />
               ))}

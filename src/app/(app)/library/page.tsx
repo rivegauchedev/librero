@@ -64,7 +64,7 @@ export default async function LibraryPage({
   ).size
 
   return (
-    <div className="flex max-w-[1180px] flex-col gap-6 px-4 lg:px-7">
+    <div className="flex flex-col gap-6 px-4 lg:px-7">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-serif text-4xl leading-[1.1] font-medium">Your shelves</h1>

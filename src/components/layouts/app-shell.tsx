@@ -35,7 +35,14 @@ export function AppShell({
         counts={counts}
         rooms={rooms}
       />
-      <SidebarInset>
+      {/*
+        `min-w-0` because a flex item defaults to min-width:auto, which is its
+        content's min-content width — and the header's buttons are shrink-0, so
+        that floor sits above the space left beside the sidebar. Without this
+        the inset refuses to shrink and the whole page scrolls sideways in the
+        band just above the mobile breakpoint.
+      */}
+      <SidebarInset className="min-w-0">
         <SiteHeader />
         <div className="@container/main flex flex-1 flex-col py-7">{children}</div>
       </SidebarInset>

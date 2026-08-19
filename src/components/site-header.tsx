@@ -26,12 +26,12 @@ export function SiteHeader() {
 
   return (
     <>
-      <header className="bg-header flex h-(--header-height) shrink-0 items-center gap-3 border-b px-4 transition-[width,height] ease-linear lg:px-7">
-        <SidebarTrigger className="-ml-1" />
+      <header className="bg-header flex h-(--header-height) w-full shrink-0 items-center gap-2 overflow-hidden border-b px-3 transition-[width,height] ease-linear sm:gap-3 sm:px-4 lg:px-7">
+        <SidebarTrigger className="-ml-1 shrink-0" />
 
         <SearchTrigger onClick={() => setSearchOpen(true)} />
 
-        <div className="ml-auto flex items-center gap-2.5">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-2.5">
           {/* The one line of copy that says what this app is for. */}
           <span className="text-muted-foreground font-serif hidden text-sm italic lg:inline">
             In a bookshop?

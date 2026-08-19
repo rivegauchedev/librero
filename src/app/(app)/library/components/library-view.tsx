@@ -291,7 +291,7 @@ export function LibraryView({
         filtered.length === 0 ? (
           <Empty />
         ) : (
-          <div className="grid grid-cols-3 gap-5 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(6rem,1fr))] gap-5 sm:grid-cols-[repeat(auto-fill,minmax(8rem,1fr))]">
             {filtered.map((work) => (
               <BookCard key={work.id} work={work} />
             ))}
@@ -315,7 +315,15 @@ export function LibraryView({
                 </span>
               </div>
               <Shelf>
-                <div className="grid grid-cols-4 items-end gap-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-9">
+                {/*
+                  Auto-fill rather than a fixed column count. A fixed nine
+                  columns ties cover size to viewport width, so a 1080p screen
+                  either left a third of the page empty or blew the covers up.
+                  Filling to a minimum width holds the cover at a constant size
+                  and lets a wider screen hold more books — which is what a
+                  wider shelf does.
+                */}
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(4.5rem,1fr))] items-end gap-4 sm:grid-cols-[repeat(auto-fill,minmax(6rem,1fr))] lg:grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))]">
                   {group.books.map((work) => (
                     <BookCard key={work.id} work={work} showLabel={false} />
                   ))}
