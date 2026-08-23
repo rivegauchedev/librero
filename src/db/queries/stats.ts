@@ -38,3 +38,23 @@ export function getLibraryStats(): LibraryStats {
 
   return row
 }
+
+/* ---------------------------------------------------------------- sidebar */
+
+export type NavCounts = {
+  works: number
+  wishlist: number
+  onLoan: number
+}
+
+/** The three numbers the sidebar prints beside its links. */
+export function getNavCounts(): NavCounts {
+  return sqlite
+    .prepare(
+      `SELECT
+         (SELECT count(*) FROM works WHERE is_wishlist = 0)   AS works,
+         (SELECT count(*) FROM works WHERE is_wishlist = 1)   AS wishlist,
+         (SELECT count(*) FROM loans WHERE returned_at IS NULL) AS onLoan`
+    )
+    .get() as NavCounts
+}

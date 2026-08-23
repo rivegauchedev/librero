@@ -14,9 +14,9 @@ export default async function AccountSettings() {
   const user = await requireUser()
 
   return (
-    <div className="space-y-6 px-4 lg:px-6">
+    <div className="space-y-6 px-4 lg:px-7">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Account</h1>
+        <h1 className="font-serif text-3xl font-medium">Account</h1>
         <p className="text-muted-foreground">Your sign-in details.</p>
       </div>
 

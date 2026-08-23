@@ -135,10 +135,12 @@ export function applyImport(
         sqlite
           .prepare(
             `UPDATE works SET reading_status = ?, rating = COALESCE(?, rating),
-                              notes = COALESCE(?, notes), updated_at = unixepoch()
+                              notes = COALESCE(?, notes),
+                              current_page = COALESCE(?, current_page),
+                              updated_at = unixepoch()
               WHERE id = ?`
           )
-          .run(row.readingStatus, row.rating, row.notes, workId)
+          .run(row.readingStatus, row.rating, row.notes, row.currentPage, workId)
 
         editionId = createEdition({
           workId,

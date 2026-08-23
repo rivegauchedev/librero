@@ -20,11 +20,17 @@ export type WorkListRow = {
   firstPublishYear: number | null
   readingStatus: ReadingStatus
   rating: number | null
+  /** Page you are on, or null when progress is not being tracked. */
+  currentPage: number | null
+  /** Pages in the edition we are showing, so `currentPage` can become a bar. */
+  pageCount: number | null
   isWishlist: boolean
   /** Distinct formats owned, e.g. "paperback,ebook" — split before rendering. */
   formats: string
   editionCount: number
   copyCount: number
+  /** True while any copy of this work is out on an open loan. */
+  onLoan: boolean
   coverPath: string | null
   locations: string | null
   addedAt: number
@@ -47,6 +53,10 @@ const WORK_LIST_SQL = `
     w.first_publish_year                       AS firstPublishYear,
     w.reading_status                           AS readingStatus,
     w.rating                                   AS rating,
+    w.current_page                             AS currentPage,
+    (SELECT e.page_count FROM editions e
+      WHERE e.work_id = w.id AND e.page_count IS NOT NULL
+      ORDER BY e.id LIMIT 1)                   AS pageCount,
     w.is_wishlist                              AS isWishlist,
     COALESCE((SELECT group_concat(DISTINCT e.format)
                 FROM editions e
@@ -58,6 +68,10 @@ const WORK_LIST_SQL = `
                 FROM editions e
                 JOIN copies c ON c.edition_id = e.id
                WHERE e.work_id = w.id), 0)     AS copyCount,
+    EXISTS (SELECT 1 FROM editions e
+              JOIN copies c ON c.edition_id = e.id
+              JOIN loans l ON l.copy_id = c.id
+             WHERE e.work_id = w.id AND l.returned_at IS NULL) AS onLoan,
     (SELECT e.cover_path FROM editions e
       WHERE e.work_id = w.id AND e.cover_path IS NOT NULL
       LIMIT 1)                                 AS coverPath,
@@ -69,9 +83,17 @@ const WORK_LIST_SQL = `
 `
 
 function toRows(rows: unknown[]): WorkListRow[] {
-  return (rows as (Omit<WorkListRow, "isWishlist"> & { isWishlist: number })[]).map(
-    (row) => ({ ...row, isWishlist: Boolean(row.isWishlist) })
-  )
+  // SQLite has no boolean type; both of these come back as 0 or 1.
+  return (
+    rows as (Omit<WorkListRow, "isWishlist" | "onLoan"> & {
+      isWishlist: number
+      onLoan: number
+    })[]
+  ).map((row) => ({
+    ...row,
+    isWishlist: Boolean(row.isWishlist),
+    onLoan: Boolean(row.onLoan),
+  }))
 }
 
 export function listWorks(): WorkListRow[] {
@@ -164,6 +186,7 @@ export type WorkDetail = {
   originalLanguage: string | null
   readingStatus: ReadingStatus
   rating: number | null
+  currentPage: number | null
   dateFinished: number | null
   notes: string | null
   isWishlist: boolean
@@ -179,7 +202,8 @@ export function getWorkDetail(workId: number): WorkDetail | null {
     .prepare(
       `SELECT id, title, subtitle, description, first_publish_year AS firstPublishYear,
               original_language AS originalLanguage, reading_status AS readingStatus,
-              rating, date_finished AS dateFinished, notes, is_wishlist AS isWishlist,
+              rating, current_page AS currentPage, date_finished AS dateFinished,
+              notes, is_wishlist AS isWishlist,
               open_library_work_id AS openLibraryWorkId
          FROM works WHERE id = ?`
     )
@@ -253,4 +277,30 @@ export function getWorkDetail(workId: number): WorkDetail | null {
       })),
     })),
   }
+}
+
+/* ------------------------------------------------------------- by location */
+
+/**
+ * Every (work, location) pair, so the shelves view can draw one rail per place.
+ * A book with copies in two rooms appears on both rails — which is the truth
+ * about where it is, and the whole reason the view exists.
+ *
+ * The joins are outer and the query starts from `works` on purpose. An older
+ * catalogue is full of books recorded before anyone held them: editions with no
+ * copies, and works with no editions at all. An inner join drops those, and the
+ * shelves view would then quietly show fewer books than the heading counts. They
+ * come back with a null location instead, which puts them in the unshelved
+ * bucket — where a book you own but have not placed actually belongs.
+ */
+export function listWorkLocations(): { workId: number; location: string | null }[] {
+  return sqlite
+    .prepare(
+      `SELECT DISTINCT w.id AS workId, c.location AS location
+         FROM works w
+         LEFT JOIN editions e ON e.work_id = w.id
+         LEFT JOIN copies c ON c.edition_id = e.id
+        WHERE w.is_wishlist = 0`
+    )
+    .all() as { workId: number; location: string | null }[]
 }

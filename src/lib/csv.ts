@@ -40,6 +40,7 @@ export const LIBRERO_COLUMNS = [
   "purchase_price",
   "reading_status",
   "rating",
+  "current_page",
   "tags",
   "notes",
   "wishlist",
@@ -68,6 +69,7 @@ export type ImportRow = {
   purchasePriceCents: number | null
   readingStatus: "unread" | "reading" | "read"
   rating: number | null
+  currentPage: number | null
   tags: string[]
   notes: string | null
   isWishlist: boolean
@@ -187,6 +189,7 @@ function fromLibreroRow(row: Record<string, string>, line: number): ImportRow {
         ? row.reading_status
         : "unread",
     rating: int(row.rating),
+    currentPage: int(row.current_page),
     tags: splitList(row.tags),
     notes: text(row.notes),
     isWishlist: ["1", "true", "yes"].includes(row.wishlist?.trim().toLowerCase() ?? ""),
@@ -229,6 +232,8 @@ function fromGoodreadsRow(row: Record<string, string>, line: number): ImportRow 
     readingStatus: goodreadsStatus(row["Exclusive Shelf"]),
     // Goodreads writes 0 for "unrated".
     rating: rating && rating > 0 ? rating : null,
+    // Goodreads exports no reading position, so progress stays untracked.
+    currentPage: null,
     tags: splitList(row["Bookshelves"]).filter(
       (shelf) => !["read", "currently-reading", "to-read"].includes(shelf)
     ),

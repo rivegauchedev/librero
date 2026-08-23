@@ -17,10 +17,10 @@ export default async function ImportPage() {
   await requireUser()
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 lg:px-6">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 lg:px-7">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Import and export</h1>
-        <p className="text-muted-foreground">
+        <h1 className="font-serif text-4xl leading-[1.1] font-medium">Bring books in</h1>
+        <p className="text-muted-foreground mt-1.5 text-[15px]">
           Bring in a spreadsheet or a Goodreads export, or take your whole catalogue away.
         </p>
       </div>

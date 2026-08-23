@@ -1,0 +1,1 @@
+ALTER TABLE `works` ADD `current_page` integer;

@@ -26,6 +26,7 @@ type Row = {
   purchasePriceCents: number | null
   readingStatus: string
   rating: number | null
+  currentPage: number | null
   tags: string | null
   notes: string | null
   isWishlist: number
@@ -73,6 +74,7 @@ export function exportRows(): ExportRow[] {
          c.purchase_price_cents                        AS purchasePriceCents,
          w.reading_status                              AS readingStatus,
          w.rating                                      AS rating,
+         w.current_page                                AS currentPage,
          (SELECT group_concat(t.name, '; ')
             FROM work_tags wt JOIN tags t ON t.id = wt.tag_id
            WHERE wt.work_id = w.id)                    AS tags,
@@ -111,6 +113,7 @@ export function exportRows(): ExportRow[] {
       row.purchasePriceCents === null ? "" : (row.purchasePriceCents / 100).toFixed(2),
     reading_status: row.readingStatus,
     rating: value(row.rating),
+    current_page: value(row.currentPage),
     tags: value(row.tags),
     notes: value(row.notes),
     wishlist: row.isWishlist ? "true" : "false",

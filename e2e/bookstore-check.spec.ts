@@ -51,7 +51,10 @@ test("a temporary password forces a password change before anything else", async
   await page.getByRole("button", { name: "Change password" }).click()
 
   await expect(page).toHaveURL("/")
-  await expect(page.getByRole("heading", { name: /Hello,/ })).toBeVisible()
+  // The reading room greets you by name; which greeting depends on the hour.
+  await expect(
+    page.getByRole("heading", { name: /Good (morning|afternoon|evening),/ })
+  ).toBeVisible()
 
   // Sign out and back in: the new password works, and the first-run gate stays
   // lifted rather than re-triggering on the next session.
@@ -98,8 +101,10 @@ test("scan, add, then scan again and be told you already own it", async ({ page 
   await expect(page).toHaveURL(/\/works\/\d+/, { timeout: 45_000 })
   await expect(page.getByRole("heading", { name: "Dune", level: 1 })).toBeVisible()
   await expect(page.getByText("Frank Herbert")).toBeVisible()
-  await expect(page.getByText(/2 copies across 1 edition/)).toBeVisible()
-  await expect(page.getByText(SHELF)).toBeVisible()
+  // The card under the cover carries where and how many in one line; the green
+  // pill carries the verdict. Between them: that you own it, which, and where.
+  await expect(page.getByText(`${SHELF} · 2 copies`)).toBeVisible()
+  await expect(page.getByText(/On your shelf/)).toBeVisible()
 
   // --- scan it again: the verdict must flip ---------------------------------
   await page.goto("/search")
@@ -119,8 +124,13 @@ test("the book appears in the library and the shelf answers a title search", asy
   await signInAsAdmin(page)
 
   await page.goto("/library")
-  await expect(page.getByText("1 book on the shelf.")).toBeVisible()
+  // The shelves view counts the book and the room it was filed into.
+  await expect(page.getByText("1 book in 1 room.")).toBeVisible()
   await expect(page.getByRole("link", { name: /Dune/ }).first()).toBeVisible()
+  // And it is drawn on the rail for the shelf it was given, not a generic grid.
+  await expect(
+    page.getByRole("heading", { name: "Office · shelf B3" })
+  ).toBeVisible()
 
   // Searching a bare title must surface your own copy above provider results —
   // Open Library ranks the sequels first, which is why the shelf comes first.
@@ -128,7 +138,12 @@ test("the book appears in the library and the shelf answers a title search", asy
   await page.getByPlaceholder("ISBN, title or author").fill("dune")
   await page.getByRole("button", { name: "Check" }).click()
 
-  await expect(page.getByText("On your shelf")).toBeVisible({ timeout: 45_000 })
+  // The shelf's own answer, in the words the check screen now uses. Asserted on
+  // the full sentence: a bare "on your shelf" is a substring of the "Not on your
+  // shelf" badge that every provider result below it carries.
+  await expect(page.getByText("Yes \u2014 it's already yours")).toBeVisible({
+    timeout: 45_000,
+  })
 })
 
 test("an invalid ISBN is reported as a misread, not looked up", async ({ page }) => {
