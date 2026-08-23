@@ -27,9 +27,14 @@ and in the CSV importer — the importer checks the *resulting* count in its dry
 the current one, so a 600-row import into a Free library is refused with a number, not
 discovered 50 rows in.
 
-Storage is the second axis. A 2,000-book digital library at the current 100 MB upload cap
-is theoretically 200 GB; each tier gets an upload-storage quota (proposed: 1 GB free,
-25 GB Personal, 100 GB Library) enforced the same way, at write time.
+There is no storage axis, because **the SaaS does not host ebook files**. Digital copies
+are records: format, the existing `external_service` field ("kindle", "kobo"…), and a new
+optional `external_url` for people who keep the file in their own Drive/Dropbox/NAS.
+Self-hosted Librero keeps real uploads; the hosted service deliberately doesn't offer
+them. That one decision removes the largest cost (object storage and egress for files up
+to 100 MB), the hardest technical constraint (serverless body limits), and the heaviest
+legal exposure (hosting copyrighted files on users' behalf). The only files the platform
+stores are cover images, which are small enough to be a rounding error at every tier.
 
 ## Target architecture
 
@@ -44,7 +49,7 @@ Two planes, one codebase.
 **Data plane** — per tenant:
 
 - One Turso (libSQL) database with the *existing, unchanged* Librero schema
-- One prefix in an object-storage bucket (`{tenantId}/covers/…`, `{tenantId}/books/…`)
+- One prefix in an object-storage bucket for covers only (`{tenantId}/covers/…`)
 
 This is the database-per-tenant model, and it is deliberate. The alternative — a
 `tenant_id` column on every table and a filter in every query — touches all of `src/db/`
@@ -72,9 +77,10 @@ on-demand TLS and remains the fallback that changes the least.
 | Concern | Self-hosted (unchanged promise) | SaaS |
 | --- | --- | --- |
 | Database | Local SQLite file via `file:` URL | Turso database per tenant |
-| Uploads | Local `data/uploads/` | Object storage, per-tenant prefix |
+| Ebooks | Uploaded to `data/uploads/`, downloadable | Recorded only — service/URL, no file hosting |
+| Covers | Local `data/uploads/covers/` | Object storage, per-tenant prefix |
 | Auth | Local accounts, as today | Better Auth at `auth.librero.app` |
-| Limits | None | Tier caps on works and storage |
+| Limits | None | Tier cap on works |
 | Backup | Tar one directory | Platform's job (fleet snapshots + export) |
 
 The same `@libsql/client` speaks both `file:` and `libsql://` URLs, which is what makes
@@ -105,22 +111,30 @@ The foundation everything else stands on, and identical under every hosting choi
 **Exit criteria:** app runs unchanged on a local file *and* against a real Turso database
 by flipping one environment variable. No user-visible change.
 
-## Phase 2 — Object storage and direct uploads
+## Phase 2 — Cover storage and the no-hosting rule
 
-- Introduce a storage interface with two drivers: local filesystem (self-host, the code
-  that exists today in `src/lib/uploads.ts` and `src/lib/covers.ts`) and S3-compatible
-  object storage (SaaS — Cloudflare R2 proposed, for zero egress fees on ebook
-  downloads).
-- Rework ebook upload from "file through a Server Action" to presigned direct-to-bucket
-  upload. Serverless platforms cap request bodies far below 100 MB, so this is a
-  requirement, not a preference. Magic-byte validation moves to a confirmation step
-  after upload; unconfirmed objects are garbage-collected.
-- `src/app/api/files/[copyId]/route.ts` and `src/app/api/covers/[...path]/route.ts` keep
-  their URLs and auth checks but redirect to short-lived signed bucket URLs when the S3
-  driver is active.
+Much smaller than it would be if the service hosted ebooks — that is the point.
 
-**Exit criteria:** uploads and downloads work in both drivers; self-hosted behavior
-byte-identical to today.
+- A cover-storage interface with two drivers: local filesystem (self-host, the
+  content-addressed store in `src/lib/covers.ts` as it exists today) and S3-compatible
+  object storage (SaaS — Cloudflare R2 proposed). Covers are fetched server-side from
+  the metadata providers and are tens of kilobytes, so no body-limit or direct-upload
+  machinery is needed. `src/app/api/covers/[...path]/route.ts` keeps its URL and auth
+  check, redirecting to a short-lived signed URL when the S3 driver is active.
+- A capability flag (`ebookUploads`), on for self-host, off in SaaS mode. With it off,
+  the upload form and `src/app/api/files/[copyId]/route.ts` are simply absent, and
+  `src/lib/uploads.ts` is never reached.
+- Schema addition, useful in both modes: `external_url` on `copies`, next to the
+  existing `external_service`. A digital copy in the SaaS is a record — format,
+  service, optional link to wherever the user keeps the file — and the copy form
+  renders a URL field where self-host renders an upload control. The URL is stored and
+  linked out, never fetched or proxied.
+- CSV import/export carries the new column, so a self-hosted library with real files
+  still round-trips into the SaaS as records (file paths export as names, not
+  contents).
+
+**Exit criteria:** covers work in both drivers; SaaS mode builds with no upload surface
+at all; self-hosted behavior byte-identical to today.
 
 ## Phase 3 — Control plane and tenancy
 
@@ -166,7 +180,6 @@ you're a member of; sign-out and session revocation actually revoke.
 - Entitlement checks in the add-book actions and the CSV importer, per the tier table
   above. Over-cap after a downgrade is read-only-for-adds: nothing is ever deleted, adds
   are refused with the count and an upgrade link, export always works.
-- Storage quota enforced at presign time.
 - Enterprise: a contact form and a `plan = enterprise` flag that lifts the caps —
   provisioning stays manual on purpose until there is a second enterprise customer.
 
@@ -180,9 +193,11 @@ without a deploy; a webhook replay is idempotent.
   `api`, `admin`, real trademarks) and manual review for claiming a name like `nypl`.
 - Fleet operations: scheduled export of every tenant database and bucket prefix to cold
   storage, uptime monitoring, error tracking, an internal admin page over the registry.
-- Abuse controls: signup rate limiting, upload scanning policy, DMCA process — the
-  service stores copyrighted ebooks on behalf of users, so a takedown process is a legal
-  requirement, not polish.
+- Abuse controls: signup rate limiting and a takedown contact. Because the service
+  hosts no ebook files — only metadata and outbound links users typed in — the abuse
+  surface is a fraction of what a file-hosting service carries; a policy for removing
+  infringing *links* on notice is still worth having, but it is a paragraph in the
+  terms, not a compliance program.
 - Terms of service and privacy policy; a `librero.app` landing page with the pricing
   table.
 - Licensing note: Librero is AGPL-3.0 with a single copyright holder, so offering it as
@@ -204,8 +219,8 @@ Small, but they gate later phases:
 2. **Pricing numbers** for Personal and Library (gates 5; the *mechanics* don't need
    them, the landing page does).
 3. **Confirm the billable unit** — this plan says works, not copies (gates 5).
-4. **Domain and orgs**: `librero.app` DNS, Turso organization, R2 bucket, Stripe
-   account (gates 3, 2, 5 respectively).
+4. **Domain and orgs**: `librero.app` DNS, Turso organization, R2 bucket (covers
+   only), Stripe account (gates 3, 2, 5 respectively).
 
 ## Risks worth naming
 
@@ -216,6 +231,12 @@ Small, but they gate later phases:
   instance is fine at 2 k-book scale, but the connection map from Phase 1 should evict,
   not grow forever.
 - **Wildcard support on Netlify** may not materialize on an affordable plan; the
-  fallback (Docker on Fly/VPS) is already built, so this risk is bounded.
+  fallback (Docker on Fly/VPS) is already built, so this risk is bounded. Note that
+  dropping hosted ebooks also dropped the 100 MB-body-through-a-function problem, so
+  serverless platforms are no longer handicapped on that axis.
+- **"Just let us upload" pressure.** Users will ask for hosted ebooks. The
+  `ebookUploads` capability flag keeps the door open deliberately — if it is ever
+  worth the storage cost and the DMCA program, it becomes a paid add-on behind that
+  flag, not a rewrite. Until then the answer is the `external_url` field.
 - **Scope creep from enterprise conversations.** SSO/SAML is deliberately *not* in this
   plan; Better Auth has an SSO plugin when a real contract asks for it, and not before.
