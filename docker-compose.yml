@@ -12,7 +12,6 @@ services:
       # Open Library asks automated clients for a contact address.
       LIBRERO_CONTACT_EMAIL: ${LIBRERO_CONTACT_EMAIL:-}
       GOOGLE_BOOKS_API_KEY: ${GOOGLE_BOOKS_API_KEY:-}
-      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-100}
     volumes:
       # Everything mutable lives here: librero.db plus uploads/. Back up this
       # one directory and you have backed up the whole application.

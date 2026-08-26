@@ -28,32 +28,6 @@ import {
 } from "@/lib/covers"
 import { optionalInt, optionalList, optionalText } from "@/lib/form-fields"
 import { lookupByIsbn } from "@/lib/providers"
-import { deleteCopyFiles } from "@/lib/uploads"
-
-/**
- * Copies are removed by SQL cascade, which cannot touch the disk. Collect the
- * ids first so their uploaded ebooks can be unlinked afterwards — otherwise the
- * uploads directory grows forever with files nothing references.
- */
-function copyIdsUnderWork(workId: number): number[] {
-  return (
-    sqlite
-      .prepare(
-        `SELECT c.id FROM copies c
-           JOIN editions e ON e.id = c.edition_id
-          WHERE e.work_id = ?`
-      )
-      .all(workId) as { id: number }[]
-  ).map((row) => row.id)
-}
-
-function copyIdsUnderEdition(editionId: number): number[] {
-  return (
-    sqlite.prepare("SELECT id FROM copies WHERE edition_id = ?").all(editionId) as {
-      id: number
-    }[]
-  ).map((row) => row.id)
-}
 
 export type BookActionState = {
   error?: string
@@ -386,9 +360,7 @@ export async function removeWork(
     const workId = Number(formData.get("workId"))
     if (!Number.isInteger(workId) || workId <= 0) return { error: "Invalid book." }
 
-    const copyIds = copyIdsUnderWork(workId)
     deleteWork(workId)
-    await Promise.all(copyIds.map(deleteCopyFiles))
 
     refresh()
     return { success: "Removed from your library." }
@@ -511,9 +483,7 @@ export async function removeEdition(
     const workId = Number(formData.get("workId"))
     if (!Number.isInteger(editionId)) return { error: "Invalid edition." }
 
-    const copyIds = copyIdsUnderEdition(editionId)
     deleteEdition(editionId)
-    await Promise.all(copyIds.map(deleteCopyFiles))
 
     refresh(workId)
     return { workId, success: "Edition removed." }
@@ -607,7 +577,6 @@ export async function removeCopy(
     }
 
     deleteCopy(copyId)
-    await deleteCopyFiles(copyId)
 
     refresh(workId)
     return { workId, success: "Copy removed." }

@@ -14,7 +14,7 @@ import {
  *
  *   Work     the book as an idea      "Dune" by Frank Herbert
  *    └ Edition  a specific publication   Ace 2010 paperback, ISBN 9780441013593
- *       └ Copy    a thing you own          hardcover on shelf B3, x2  |  an EPUB on disk
+ *       └ Copy    a thing you own          hardcover on shelf B3, x2  |  an EPUB on Kobo
  *
  * That split is what lets the bookstore check answer "you own this book, but in
  * paperback — the one in your hand is the hardcover".
@@ -263,13 +263,10 @@ export const copies = sqliteTable(
     location: text("location"),
     notes: text("notes"),
 
-    /* Digital copies only. */
-    fileName: text("file_name"),
-    /** Relative to UPLOADS_DIR — never a client-supplied absolute path. */
-    filePath: text("file_path"),
-    fileSizeBytes: integer("file_size_bytes"),
+    /* Digital copies only — metadata about the file, which lives elsewhere.
+       Librero never stores the file itself. */
     fileFormat: text("file_format", { enum: FILE_FORMATS }),
-    /** For digital copies you own but cannot upload: "kindle", "audible", "kobo". */
+    /** Where the digital copy lives: "kindle", "audible", "kobo". */
     externalService: text("external_service"),
 
     ...timestamps,

@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useActionState } from "react"
-import { Download, ImagePlus, MapPin, Pencil, Plus, Trash2 } from "lucide-react"
+import { ImagePlus, MapPin, Pencil, Plus, Trash2 } from "lucide-react"
 
 import { removeCopy, removeEdition, type BookActionState } from "@/actions/books"
 import type { CopyDetail, EditionDetail } from "@/db/queries/works"
@@ -11,16 +11,10 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { BookCover } from "@/components/book-cover"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  fileFormatLabel,
-  formatFileSize,
-  formatLabel,
-  mediumLabel,
-} from "@/lib/labels"
+import { fileFormatLabel, formatLabel, mediumLabel } from "@/lib/labels"
 import { CopyDialog } from "./copy-dialog"
 import { EditionDialog } from "./edition-dialog"
 import { LoanBadge, LoanControls, LoanHistory } from "./loan-controls"
-import { UploadDialog } from "./upload-dialog"
 
 function CopyRow({
   workId,
@@ -38,6 +32,7 @@ function CopyRow({
     copy.quantity > 1 ? `×${copy.quantity}` : null,
     copy.condition,
     copy.externalService,
+    copy.fileFormat ? fileFormatLabel(copy.fileFormat) : null,
     copy.acquiredDate
       ? `acquired ${new Date(copy.acquiredDate * 1000).toLocaleDateString()}`
       : null,
@@ -63,21 +58,6 @@ function CopyRow({
         </span>
       ) : null}
 
-      {copy.filePath ? (
-        <a
-          href={`/api/files/${copy.id}`}
-          className="inline-flex items-center gap-1 underline underline-offset-4"
-        >
-          <Download className="size-3.5" />
-          {copy.fileName ?? "Download"}
-          <span className="text-muted-foreground">
-            {copy.fileFormat ? ` (${fileFormatLabel(copy.fileFormat)}` : ""}
-            {copy.fileSizeBytes ? `, ${formatFileSize(copy.fileSizeBytes)}` : ""}
-            {copy.fileFormat ? ")" : ""}
-          </span>
-        </a>
-      ) : null}
-
       {copy.notes ? (
         <span className="text-muted-foreground italic">{copy.notes}</span>
       ) : null}
@@ -87,13 +67,6 @@ function CopyRow({
       <div className="ml-auto flex items-center gap-1">
         <LoanControls workId={workId} copy={copy} />
         <CopyDialog workId={workId} editionId={editionId} copy={copy} />
-        {copy.medium === "digital" ? (
-          <UploadDialog
-            workId={workId}
-            copyId={copy.id}
-            hasFile={Boolean(copy.filePath)}
-          />
-        ) : null}
         <form action={action}>
           <input type="hidden" name="copyId" value={copy.id} />
           <input type="hidden" name="workId" value={workId} />

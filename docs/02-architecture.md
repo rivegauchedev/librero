@@ -64,12 +64,12 @@ Authorization is always `requireUser()` / `assertAdmin()` on the server.
 
 ```
 src/
-  actions/          Server Actions — auth, books, users, uploads, import
+  actions/          Server Actions — auth, books, users, import
   app/
     (auth)/         login, first-run password change, error pages — no app shell
     (app)/          everything behind the login wall, wrapped in the sidebar shell
-    api/            routes that must return non-HTML: covers, files, export,
-                    lookup, library-search, health
+    api/            routes that must return non-HTML: covers, export, lookup,
+                    library-search, health
   components/
     ui/             shadcn primitives (vendored)
     data-table/     generic TanStack table, promoted from the template
@@ -85,7 +85,6 @@ src/
     ownership.ts    the duplicate-detection logic
     isbn.ts         parsing, validation, ISBN-10 ↔ 13
     text.ts         normalization for sorting and fuzzy matching
-    uploads.ts      ebook validation and storage
     csv.ts          import/export dialects
     session.ts      JWT cookie
     auth.ts         guards

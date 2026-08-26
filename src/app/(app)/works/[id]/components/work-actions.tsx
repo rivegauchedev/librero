@@ -83,8 +83,7 @@ export function WorkActions({
             <DialogHeader>
               <DialogTitle>Delete this book?</DialogTitle>
               <DialogDescription>
-                Its editions, copies and any uploaded ebook files go with it. This cannot
-                be undone.
+                Its editions, copies and loan history go with it. This cannot be undone.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="pt-4">

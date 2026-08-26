@@ -329,9 +329,6 @@ export type CopyInput = {
   purchasePriceCents?: number | null
   location?: string | null
   notes?: string | null
-  fileName?: string | null
-  filePath?: string | null
-  fileSizeBytes?: number | null
   fileFormat?: string | null
   externalService?: string | null
 }
@@ -345,9 +342,8 @@ export function createCopy(input: CopyInput): number {
     .prepare(
       `INSERT INTO copies
          (edition_id, medium, quantity, condition, acquired_date, purchase_price_cents,
-          location, notes, file_name, file_path, file_size_bytes, file_format,
-          external_service)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          location, notes, file_format, external_service)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       input.editionId,
@@ -358,9 +354,6 @@ export function createCopy(input: CopyInput): number {
       input.purchasePriceCents ?? null,
       input.location ?? null,
       input.notes ?? null,
-      input.fileName ?? null,
-      input.filePath ?? null,
-      input.fileSizeBytes ?? null,
       input.fileFormat ?? null,
       input.externalService ?? null
     )
@@ -374,7 +367,8 @@ export function updateCopy(copyId: number, input: Omit<CopyInput, "editionId" | 
     .prepare(
       `UPDATE copies SET
          quantity = ?, condition = ?, acquired_date = ?, purchase_price_cents = ?,
-         location = ?, notes = ?, external_service = ?, updated_at = unixepoch()
+         location = ?, notes = ?, file_format = ?, external_service = ?,
+         updated_at = unixepoch()
        WHERE id = ?`
     )
     .run(
@@ -384,6 +378,7 @@ export function updateCopy(copyId: number, input: Omit<CopyInput, "editionId" | 
       input.purchasePriceCents ?? null,
       input.location ?? null,
       input.notes ?? null,
+      input.fileFormat ?? null,
       input.externalService ?? null,
       copyId
     )

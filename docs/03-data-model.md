@@ -5,7 +5,7 @@
 ```
 Work        the book as an idea       "Dune", by Frank Herbert
  └─ Edition  a specific publication    Ace, 2005, paperback, ISBN 9780441013593, 544pp
-     └─ Copy   a thing you own          on shelf B3, ×2   |   an EPUB on disk
+     └─ Copy   a thing you own          on shelf B3, ×2   |   an EPUB on Kobo
 ```
 
 This split is not bookkeeping pedantry — it is what makes the bookshop verdict useful.
@@ -61,7 +61,7 @@ erDiagram
         string medium "physical|digital"
         int quantity "two of the SAME edition"
         string location "Office / shelf B3"
-        string file_path "digital only, under uploads/"
+        string file_format "digital only: epub|pdf|…"
         string external_service "kindle|kobo|audible"
     }
     loans {
@@ -160,9 +160,6 @@ If the index is ever suspected to be stale: `npm run reindex`.
 `ON DELETE CASCADE` runs from works down through editions to copies to loans — loan
 history for a copy you no longer own is noise. Because that silently erases it, `removeCopy`
 refuses while a loan is still open (`countOpenLoansForCopy` in `src/db/queries/loans.ts`).
-SQL cannot unlink
-files, so the delete actions in `src/actions/books.ts` collect the affected copy ids
-*before* deleting and remove their upload directories afterwards.
 
 ## Changing the schema
 

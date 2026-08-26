@@ -78,7 +78,6 @@ never an HTML redirect — and each does its own `getSession()` check.
 | --- | --- | --- |
 | Browse, search, scan | ✓ | ✓ |
 | Add, edit, delete books, editions, copies | ✓ | ✓ |
-| Upload and download ebook files | ✓ | ✓ |
 | Import and export CSV | ✓ | ✓ |
 | Create, delete, reset and re-role accounts | | ✓ |
 

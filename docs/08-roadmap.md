@@ -6,7 +6,8 @@ Everything the brief asked for:
 
 - Barcode scanning and ISBN/title lookup, with a four-state ownership verdict
 - Work → Edition → Copy, with copy quantities for duplicate printings
-- Physical and digital copies, with real EPUB/PDF upload and authenticated download
+- Physical and digital copies — digital ones catalogued by format and service (Kindle,
+  Kobo, Audible), never uploaded
 - Open Library metadata with a Google Books fallback, cached, covers stored locally
 - Shelf locations, reading status, ratings and notes
 - Wishlist
@@ -40,7 +41,8 @@ deployment is behind Tailscale or a LAN.
 **Sessions cannot be revoked individually.** There is no session table; rotating
 `SESSION_SECRET` signs everyone out at once.
 
-**Uploaded ebooks are downloaded, not read.** No in-browser reader.
+**Digital copies are catalogue entries, not files.** Librero records that you own the
+EPUB and where it lives; it does not store, serve or read the file itself.
 
 **Covers are set by URL, not uploaded.** Pasting a link works; choosing a file
 from your phone does not, yet. The storage side would be identical — it is the

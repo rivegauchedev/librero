@@ -12,9 +12,9 @@
 {$LIBRERO_HOSTNAME:localhost} {
 	encode zstd gzip
 
-	# Ebook uploads are large; the app's own limit is MAX_UPLOAD_MB.
+	# CSV imports are the largest request body; the app caps them at 10 MB.
 	request_body {
-		max_size 128MB
+		max_size 16MB
 	}
 
 	reverse_proxy librero:3000

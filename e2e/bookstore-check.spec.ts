@@ -163,9 +163,6 @@ test("signed-out visitors get nothing", async ({ page }) => {
   await page.goto("/library")
   await expect(page).toHaveURL(/\/login/)
 
-  const files = await page.request.get("/api/files/1")
-  expect(files.status()).toBe(401)
-
   const lookup = await page.request.get(`/api/lookup?q=${DUNE_ISBN}`)
   expect(lookup.status()).toBe(401)
 })

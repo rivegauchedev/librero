@@ -36,7 +36,9 @@ Everything else in the application exists to keep those verdicts accurate.
 ## Non-goals
 
 - **Lending, reservations, patrons, fines.** This is not an ILS.
-- **Being a reading app.** Uploaded EPUBs can be downloaded, not read in-browser.
+- **Hosting ebook or audiobook files.** A digital copy is catalogued (format, which
+  service it lives on), never uploaded. The files stay on Kindle, Kobo, Audible or your
+  own disk.
 - **Social features.** No reviews to publish, no friends, no feed.
 - **Massive collections.** SQLite would cope with tens of thousands of rows, but the UI is
   designed for a shelf you could walk past, not a stack you would need a catalogue number
@@ -61,5 +63,4 @@ a shared household does not have. See [08-roadmap](08-roadmap.md) if that change
 | --- | --- |
 | Books | Designed for hundreds to a few thousand |
 | Concurrent users | A handful; SQLite serialises writes and that is fine |
-| Uploads | Bounded by `MAX_UPLOAD_MB` (default 100 MB) per file and by your disk |
 | Metadata calls | Cached for 30 days per ISBN, so a re-scan costs nothing |

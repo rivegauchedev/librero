@@ -70,7 +70,8 @@ export function CopyDialog({
           <input type="hidden" name="workId" value={workId} />
           <input type="hidden" name="editionId" value={editionId} />
           {editing ? <input type="hidden" name="copyId" value={copy.id} /> : null}
-          {/* medium is fixed once a copy exists: changing it would orphan a file */}
+          {/* medium is fixed once a copy exists: the other fields only make
+              sense for the medium the copy was created with */}
           {editing ? <input type="hidden" name="medium" value={copy.medium} /> : null}
 
           <DialogHeader>

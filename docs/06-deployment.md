@@ -11,7 +11,6 @@ data/
   librero.db-shm
   uploads/
     covers/           content-addressed cover images
-    books/<copyId>/   uploaded ebooks
 ```
 
 There is no other state. Back up that directory and you have backed up Librero.
@@ -46,7 +45,6 @@ redeploy is just `docker compose up -d --build`.
 | `LIBRERO_HOSTNAME` | no | Caddy's site address. A real domain gets Let's Encrypt automatically |
 | `LIBRERO_CONTACT_EMAIL` | recommended | Sent in the User-Agent to Open Library, per their API policy |
 | `GOOGLE_BOOKS_API_KEY` | no | Raises quota only; lookups work without it |
-| `MAX_UPLOAD_MB` | no | Default 100 |
 
 ### Why the image is Debian, not Alpine
 
@@ -92,7 +90,8 @@ Workable, but fiddlier than Tailscale.
 ./scripts/backup.sh /var/backups/librero
 ```
 
-Writes `librero-backup-YYYY-MM-DD-HHMMSS.tar.gz` containing the database and uploads, and
+Writes `librero-backup-YYYY-MM-DD-HHMMSS.tar.gz` containing the database and cached
+covers, and
 prunes to the most recent 14 archives (`LIBRERO_BACKUP_KEEP`).
 
 It uses `sqlite3 .backup`, not `cp`. Copying a live WAL-mode database can capture a torn

@@ -152,9 +152,6 @@ export type CopyDetail = {
   purchasePriceCents: number | null
   location: string | null
   notes: string | null
-  fileName: string | null
-  filePath: string | null
-  fileSizeBytes: number | null
   fileFormat: FileFormat | null
   externalService: string | null
   /** Newest first. At most one of these is "pending" — see queries/loans.ts. */
@@ -248,9 +245,7 @@ export function getWorkDetail(workId: number): WorkDetail | null {
   const copyStmt = sqlite.prepare(
     `SELECT id, medium, quantity, condition, acquired_date AS acquiredDate,
             purchase_price_cents AS purchasePriceCents, location, notes,
-            file_name AS fileName, file_path AS filePath,
-            file_size_bytes AS fileSizeBytes, file_format AS fileFormat,
-            external_service AS externalService
+            file_format AS fileFormat, external_service AS externalService
        FROM copies WHERE edition_id = ? ORDER BY id`
   )
 

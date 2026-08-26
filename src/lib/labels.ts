@@ -75,15 +75,3 @@ export const MEDIUM_OPTIONS = (Object.keys(MEDIUM_LABELS) as CopyMedium[]).map(
 export const FILE_FORMAT_OPTIONS = (
   Object.keys(FILE_FORMAT_LABELS) as FileFormat[]
 ).map((value) => ({ value, label: FILE_FORMAT_LABELS[value] }))
-
-export function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  const units = ["KB", "MB", "GB"]
-  let value = bytes / 1024
-  let unit = 0
-  while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024
-    unit += 1
-  }
-  return `${value.toFixed(value < 10 ? 1 : 0)} ${units[unit]}`
-}

@@ -45,9 +45,9 @@ the unhelpful "expected string, received null".
 | `saveWork` | user | Title, authors, series, tags, description. Re-derives the match keys and reindexes |
 | `saveReadingProgress` | user | Status, rating, notes. Stamps `date_finished` the first time status becomes `read` |
 | `toggleWishlist` | user | Refuses to wishlist a book that still has copies — you cannot own and want the same book |
-| `removeWork` | user | Cascades to editions and copies; unlinks their upload directories |
+| `removeWork` | user | Cascades to editions and copies |
 | `addEdition` / `saveEdition` / `removeEdition` | user | |
-| `addCopy` / `saveCopy` / `removeCopy` | user | `medium` is fixed once a copy exists: changing it would orphan an uploaded file. `removeCopy` refuses while the copy is lent out |
+| `addCopy` / `saveCopy` / `removeCopy` | user | `medium` is fixed once a copy exists — the other fields only make sense for the medium it was created with. `removeCopy` refuses while the copy is lent out |
 
 ## `src/actions/loans.ts`
 
@@ -66,16 +66,6 @@ every loan form carries a `workId` and both paths are revalidated.
 always carry `mustChangePassword`. The last-administrator and self-modification
 invariants live here; see [05-auth-and-roles](05-auth-and-roles.md).
 
-## `src/actions/uploads.ts`
-
-`uploadEbook` validates extension **and** magic bytes, enforces `MAX_UPLOAD_MB`, and
-writes to `uploads/books/{copyId}/{sanitized-name}` — a path built entirely from the copy
-id and a sanitized basename, never from client input. Replacing a file clears the old
-directory first. `deleteEbook` is the inverse.
-
-`next.config.ts` raises `serverActions.bodySizeLimit` to `MAX_UPLOAD_MB + 2`; without
-that, Next rejects the request before the action sees it.
-
 ## `src/actions/import.ts`
 
 `previewCsvImport` is a dry run: it parses, classifies every row (new / new edition /
@@ -92,7 +82,6 @@ matcher and check `getSession()` themselves.
 | `GET /api/lookup?q=` | session | The check screen's data: local `shelf` matches plus provider `candidates`, each with its ownership verdict already resolved. Sets `providerUnavailable` rather than failing when the network is down |
 | `GET /api/library-search?q=` | session | Up to 8 local hits for the ⌘K palette |
 | `GET /api/covers/[...path]` | session | A cached cover. Resolves the path and rejects anything outside the covers directory. Immutable cache header — filenames are content hashes |
-| `GET /api/files/[copyId]` | session | An uploaded ebook, streamed, `Content-Disposition: attachment`. Uploads live outside the public tree so this is the only way to reach one |
 | `GET /api/export` | session | The whole catalogue as CSV, one row per copy |
 | `GET /api/health` | none | `{"status":"ok"}` for the container healthcheck |
 

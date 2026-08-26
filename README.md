@@ -16,8 +16,8 @@ than an accidental second copy.
   not owned.
 - **Editions and copies** — the same book in paperback and hardcover are two editions;
   two identical paperbacks are one edition with a quantity of two.
-- **Physical and digital** — record where a physical copy sits on your shelves, or upload
-  the EPUB/PDF and download it again from anywhere you are signed in.
+- **Physical and digital** — record where a physical copy sits on your shelves, or note
+  the format and service (Kindle, Kobo, Audible…) a digital copy lives on.
 - **Metadata for free** — Open Library first, Google Books to fill the gaps. No API key
   needed.
 - **Reading status, ratings and notes**, per book.
@@ -74,7 +74,7 @@ own webcam.
 | `npm run reindex` | Rebuild the full-text search index |
 | `npm run cache:clear` | Empty the Open Library / Google Books response cache |
 | `npm run book:add -- <isbn>` | Add a book from the command line |
-| `./scripts/backup.sh [dir]` | Snapshot the database and uploads to a tarball |
+| `./scripts/backup.sh [dir]` | Snapshot the database and cached covers to a tarball |
 
 ## Everything lives in one directory
 

@@ -1,7 +1,5 @@
 import type { NextConfig } from "next";
 
-const maxUploadMb = Number(process.env.MAX_UPLOAD_MB ?? 100);
-
 const nextConfig: NextConfig = {
   // Self-hosted in Docker: emit a minimal server bundle instead of needing the
   // whole node_modules tree in the runtime image.
@@ -10,17 +8,17 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react"],
     serverActions: {
-      // Ebook uploads go through a Server Action, so the body limit has to clear
-      // the largest file we accept.
-      bodySizeLimit: `${maxUploadMb + 2}mb`,
+      // CSV imports go through a Server Action; the limit clears the 10 MB cap
+      // enforced in src/actions/import.ts.
+      bodySizeLimit: "12mb",
     },
   },
 
   // better-sqlite3 and argon2 are native modules — they must not be bundled.
   serverExternalPackages: ["better-sqlite3", "@node-rs/argon2"],
 
-  // Covers and ebooks are served from our own routes off local disk, so the
-  // image optimizer is never pointed at a third-party host.
+  // Covers are served from our own route off local disk, so the image
+  // optimizer is never pointed at a third-party host.
   images: { remotePatterns: [] },
 
   async headers() {
